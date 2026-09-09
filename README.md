@@ -57,3 +57,19 @@ Our World in Data · UN World Population Prospects 2024 · WHO · World Bank · 
 ## Accessibility & performance
 
 Respects `prefers-reduced-motion`, keyboard-navigable (Esc closes the modal), semantic landmarks, ARIA labels, responsive from 320 px upward. Particle count and pixel ratio scale down automatically on mobile.
+
+## The opening film
+
+Before the monument, the site plays a ~2¾-minute film: nine chapters and forty-odd cuts through 13.8 billion years, edited live in the browser to the beat of *FUNK CONTRA (Extended · Slowed)* — Dj Samir, Nulteex, Zericxxn — streamed from YouTube via the IFrame API (nothing is re-hosted). Archival stills come from Wikimedia Commons (credits in the HUD and in `js/film-script.js`); clips are official NASA / Smithsonian / SpaceX uploads embedded muted.
+
+* `js/film-script.js` — the screenplay: chapters, shots, transitions (all in beats), image credits, tempo.
+* `js/film.js` — the editor: preloader, gate, beat clock, cuts, HUD, hand-off to the monument.
+* `css/film.css` — the look.
+
+### Tuning the beat grid
+
+Tempo and first-downbeat offset live in `TIMING` at the top of `js/film-script.js` and can be overridden without editing: `?bpm=96.7&offset=0.12`. Open `?debug=1`, enter with audio, and tap **T** on the beat (≥4 taps) or press **O** on a downbeat; arrows nudge (←/→ offset, ↑/↓ bpm), `[`/`]` seek, and the overlay prints the URL params to paste back into the script.
+
+Other switches: `?nofilm=1` (or any `#section` link) skips straight to the monument; `?t=90` starts the film at 90 s; `Esc` skips at any time.
+
+If YouTube is unreachable the film still plays on a local clock — silently, with the same cuts.

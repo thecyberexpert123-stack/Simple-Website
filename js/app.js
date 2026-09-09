@@ -26,23 +26,27 @@
   /* ---------------------------------------------------------------- */
   /* Gate                                                             */
   /* ---------------------------------------------------------------- */
-  const gate = $('#gate'), nav = $('#nav'), soundBtn = $('#sound-btn');
+  const nav = $('#nav'), soundBtn = $('#sound-btn');
   const heroTitle = $('#hero-title');
   'HUMANITY'.split('').forEach((ch, i) => { const s = el('span', null, ch); s.style.transitionDelay = (0.3 + i * 0.08) + 's'; heroTitle.appendChild(s); });
 
-  function enter(withSound) {
-    gate.classList.add('hidden');
+  let entered = false;
+  /* The film (js/film.js) calls this when it ends or is skipped.
+     opts.music: the film's soundtrack keeps playing — the sound button then controls it. */
+  function enter(withSound, opts = {}) {
+    if (entered) return; entered = true;
     document.body.classList.remove('locked');
     nav.classList.add('show');
     setTimeout(() => heroTitle.classList.add('in'), 300);
-    if (withSound) { Ambient.enable(); soundBtn.setAttribute('aria-pressed', 'true'); }
-    if (document.documentElement.requestFullscreen && matchMedia('(min-width: 900px)').matches && withSound) {
-      // do not force fullscreen; the button is there for it
-    }
+    if (opts.music) { soundBtn.setAttribute('aria-pressed', 'true'); soundBtn.title = 'Soundtrack'; soundBtn.setAttribute('aria-label', 'Toggle soundtrack'); }
+    else if (withSound) { Ambient.enable(); soundBtn.setAttribute('aria-pressed', 'true'); }
+    window.scrollTo(0, 0);
   }
-  $('#enter-sound').addEventListener('click', () => enter(true));
-  $('#enter-silent').addEventListener('click', () => enter(false));
-  soundBtn.addEventListener('click', () => { const on = Ambient.toggle(); soundBtn.setAttribute('aria-pressed', String(on)); toast(on ? 'Ambient sound on' : 'Ambient sound off'); });
+  window.HumanityApp = { enter, toast };
+  soundBtn.addEventListener('click', () => {
+    if (window.Film?.musicActive()) { const on = window.Film.toggleMusic(); soundBtn.setAttribute('aria-pressed', String(on)); toast(on ? 'Soundtrack on' : 'Soundtrack muted'); return; }
+    const on = Ambient.toggle(); soundBtn.setAttribute('aria-pressed', String(on)); toast(on ? 'Ambient sound on' : 'Ambient sound off');
+  });
   $('#fs-btn').addEventListener('click', () => {
     if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => toast('Fullscreen not available'));
     else document.exitFullscreen?.();
@@ -380,8 +384,8 @@
   /* Boot                                                             */
   /* ---------------------------------------------------------------- */
   observeReveals();
-  // Keyboard: Enter on the gate
-  addEventListener('keydown', (e) => { if (!gate.classList.contains('hidden') && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); enter(false); } }, { once: true });
-  // If the page is opened with a hash, skip the gate
-  if (location.hash && location.hash !== '#hero') { enter(false); setTimeout(() => document.querySelector(location.hash)?.scrollIntoView(), 50); }
+  // Without the film layer (e.g. it was removed or failed to load), open the monument directly
+  // (film.js sets window.Film when it boots; if it never does, the film is not running — open the monument)
+  const noFilm = () => { if (!entered && !window.Film) { document.getElementById('film')?.remove(); enter(false); } };
+  if (document.readyState === 'complete') noFilm(); else addEventListener('load', noFilm);
 })();

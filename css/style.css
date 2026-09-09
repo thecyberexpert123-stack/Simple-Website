@@ -78,36 +78,6 @@ img { max-width: 100%; display: block; }
 
 main { position: relative; z-index: 3; }
 
-/* ---------------------------------------------------------------- */
-/* Entry gate                                                       */
-/* ---------------------------------------------------------------- */
-#gate {
-  position: fixed; inset: 0; z-index: 100;
-  display: grid; place-items: center; text-align: center;
-  background: radial-gradient(ellipse at 50% 40%, #0b0e1a 0%, #05060a 70%);
-  transition: opacity 1.4s var(--ease-io), visibility 0s linear 1.4s;
-}
-#gate.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-.gate-inner { padding: 24px; width: 100%; max-width: 1400px; }
-.gate-eyebrow {
-  font-size: 11px; letter-spacing: 0.42em; text-transform: uppercase; color: var(--gold);
-  opacity: 0; animation: fadeUp 1.6s var(--ease) 0.4s forwards;
-}
-.gate-title {
-  font-size: clamp(52px, 11vw, 150px); font-weight: 300; letter-spacing: 0.14em; margin: 18px 0 8px;
-  padding-left: 0.14em;
-  background: linear-gradient(180deg, #fff 0%, #e8c98a 55%, #8d7040 120%);
-  -webkit-background-clip: text; background-clip: text; color: transparent;
-  opacity: 0; animation: fadeUp 2s var(--ease) 0.8s forwards;
-}
-.gate-sub {
-  font-family: var(--serif); font-style: italic; font-size: clamp(18px, 2.4vw, 26px); color: var(--ink-dim); max-width: 720px; margin: 0 auto;
-  opacity: 0; animation: fadeUp 1.6s var(--ease) 1.5s forwards;
-}
-.gate-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 44px; opacity: 0; animation: fadeUp 1.4s var(--ease) 2.2s forwards; }
-.gate-note { margin-top: 22px; font-size: 12px; color: var(--ink-faint); letter-spacing: 0.08em; opacity: 0; animation: fadeUp 1.4s var(--ease) 2.6s forwards; }
-.gate-line { width: 1px; height: 64px; margin: 0 auto 24px; background: linear-gradient(to bottom, transparent, var(--gold)); opacity: 0; animation: fadeUp 1.4s var(--ease) 0.1s forwards; }
-
 @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
 
 /* Buttons */
