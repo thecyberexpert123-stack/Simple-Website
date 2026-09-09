@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>HUMANITY — A Monument to What We Have Done</title>
+  <meta name="description" content="An interactive monument to human achievement: 13.8 billion years compressed into one calendar, eleven eras of discovery, six galleries of milestones, living numbers, and your own place in the story.">
+  <meta name="theme-color" content="#05060a">
+  <meta property="og:title" content="HUMANITY — A Monument to What We Have Done">
+  <meta property="og:description" content="Fire. The written word. Flight. The atom. The Moon. The Web. The genome. The first image of a black hole. Explore the story of the species that looked up.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2305060a'/%3E%3Ccircle cx='32' cy='32' r='9' fill='%23e8c98a'/%3E%3Ccircle cx='32' cy='32' r='22' fill='none' stroke='%23e8c98a' stroke-opacity='.5' stroke-width='1.5'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="locked">
+
+  <!-- Living background -->
+  <canvas id="cosmos" aria-hidden="true"></canvas>
+  <div id="vignette" aria-hidden="true"></div>
+  <div id="grain" aria-hidden="true"></div>
+
+  <!-- Entry gate -->
+  <div id="gate" role="dialog" aria-labelledby="gate-title">
+    <div class="gate-inner">
+      <div class="gate-line"></div>
+      <p class="gate-eyebrow">A monument to what we have done</p>
+      <h1 class="gate-title" id="gate-title">HUMANITY</h1>
+      <p class="gate-sub">The story of the species that looked up.</p>
+      <div class="gate-actions">
+        <button class="btn primary" id="enter-sound">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
+          Enter with sound
+        </button>
+        <button class="btn" id="enter-silent">Enter in silence</button>
+      </div>
+      <p class="gate-note">Best experienced full-screen, unhurried, with headphones.</p>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <div id="progress" aria-hidden="true"></div>
+  <nav id="nav" aria-label="Primary">
+    <a class="brand" href="#hero">Humanity</a>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="#calendar">Calendar</a></li>
+      <li><a href="#journey">Journey</a></li>
+      <li><a href="#galleries">Galleries</a></li>
+      <li><a href="#numbers">Numbers</a></li>
+      <li><a href="#live">Live</a></li>
+      <li><a href="#you">You</a></li>
+      <li><a href="#voices">Voices</a></li>
+      <li><a href="#finale">Finale</a></li>
+    </ul>
+    <div class="nav-tools">
+      <button class="icon-btn" id="sound-btn" aria-pressed="false" aria-label="Toggle ambient sound" title="Ambient sound">
+        <span class="bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      </button>
+      <button class="icon-btn" id="fs-btn" aria-label="Toggle fullscreen" title="Fullscreen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      </button>
+      <button class="icon-btn" id="menu-btn" aria-label="Menu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- ============================== HERO ============================== -->
+    <section id="hero" class="section" data-scene="stars">
+      <div class="hero-inner">
+        <p class="hero-eyebrow">Earth · Sol · Orion Arm · Milky Way</p>
+        <h1 class="hero-title" id="hero-title" aria-label="Humanity"></h1>
+        <p class="hero-sub">Starstuff that learned to wonder, then learned to build.</p>
+        <div class="hero-meta">
+          <div><b>13.8 bn</b><small>years of universe</small></div>
+          <div><b>300,000</b><small>years of us</small></div>
+          <div><b>117 bn</b><small>humans ever born</small></div>
+          <div><b>12</b><small>have walked on another world</small></div>
+        </div>
+      </div>
+      <div class="scroll-cue" aria-hidden="true"><span>Scroll</span><i></i></div>
+    </section>
+
+    <!-- ========================= COSMIC CALENDAR ======================== -->
+    <section id="calendar" class="section" data-scene="galaxy">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow reveal">01 — Perspective</p>
+          <h2 class="h2 reveal" data-delay="1">The <em>Cosmic</em> Calendar</h2>
+          <p class="lede reveal" data-delay="2">Compress the entire 13.8-billion-year history of the universe into a single year. The Big Bang is midnight on January 1. Every second is about 440 years. Drag through time and find out how late in the year we arrived.</p>
+        </div>
+
+        <div class="calendar glass reveal" data-delay="3">
+          <div class="cal-readout">
+            <div class="cal-date"><small>Cosmic date</small><span id="cal-day">January 1</span></div>
+            <div class="cal-time" id="cal-clock">00:00:00</div>
+          </div>
+          <div class="cal-event" aria-live="polite">
+            <h3 id="cal-title">The Big Bang</h3>
+            <p id="cal-note">Space, time, matter and energy come into being.</p>
+            <p class="cal-ago" id="cal-ago">13.8 billion years ago</p>
+          </div>
+          <div class="cal-track">
+            <div class="cal-months" id="cal-months" aria-hidden="true"></div>
+            <div class="cal-bar"><div class="cal-fill" id="cal-fill"></div></div>
+            <div class="cal-marks" id="cal-marks"></div>
+            <input type="range" id="cal-range" min="0" max="100000" value="0" step="1" aria-label="Scrub through cosmic time">
+          </div>
+          <div class="cal-zoom">
+            <button class="chip on" data-zoom="year">Whole year</button>
+            <button class="chip" data-zoom="december">December</button>
+            <button class="chip" data-zoom="day">December 31</button>
+            <button class="chip" data-zoom="minute">Final minute</button>
+            <button class="chip" id="cal-play">▶ Play</button>
+          </div>
+          <p class="cal-foot">On this scale, all of recorded human history — every empire, every war, every book, every song — fits into the <b>last 12 seconds</b> before midnight. Everything since the Moon landing occupies about <b>a tenth of a second</b>.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= JOURNEY ============================ -->
+    <section id="journey" class="section">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow reveal">02 — The Journey</p>
+          <h2 class="h2 reveal" data-delay="1">Eleven <em>leaps</em></h2>
+          <p class="lede reveal" data-delay="2">From a tended ember to a telescope that sees the first light in the universe. Scroll, and the sky changes with the age.</p>
+        </div>
+        <div class="journey-grid">
+          <ol class="era-nav" id="era-nav" aria-label="Eras"></ol>
+          <div class="eras" id="eras"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ GALLERIES =========================== -->
+    <section id="galleries" class="section" data-scene="stars">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow reveal">03 — The Galleries</p>
+          <h2 class="h2 reveal" data-delay="1">Six halls of <em>achievement</em></h2>
+          <p class="lede reveal" data-delay="2">Forty-two milestones across the cosmos, medicine, mind, energy, society and art. Open any of them. Where there is footage from the source — NASA, CERN, WHO, SpaceX — you can watch it.</p>
+        </div>
+        <div class="tabs reveal" data-delay="3" id="tabs" role="tablist"></div>
+        <div class="gallery-head" id="gallery-head"></div>
+        <div class="cards" id="cards"></div>
+      </div>
+    </section>
+
+    <!-- ============================= NUMBERS ============================ -->
+    <section id="numbers" class="section" data-scene="bloom">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow reveal">04 — The Numbers</p>
+          <h2 class="h2 reveal" data-delay="1">How life actually <em>changed</em></h2>
+          <p class="lede reveal" data-delay="2">Not rockets or particle colliders — the quiet, enormous achievements. Whether a child lives. Whether an adult can read. Whether there is light after dark.</p>
+        </div>
+        <div class="numbers" id="numbers-grid"></div>
+        <p class="numbers-src reveal">Sources: Our World in Data; UN World Population Prospects; World Health Organization; World Bank; ITU. Figures rounded; "today" refers to the latest available year.</p>
+      </div>
+    </section>
+
+    <!-- ============================== LIVE ============================== -->
+    <section id="live" class="section" data-scene="orbit">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow reveal">05 — Right now</p>
+          <h2 class="h2 reveal" data-delay="1">The story is <em>still being written</em></h2>
+          <p class="lede reveal" data-delay="2">While you read this page, the species keeps moving.</p>
+        </div>
+        <div class="live-grid">
+          <div class="live glass reveal"><div class="label">Humans alive</div><div class="val" id="live-pop">—</div><p class="note">Growing by about 2.2 every second.</p></div>
+          <div class="live glass reveal" data-delay="1"><div class="label">Voyager 1 from Earth</div><div class="val" id="live-voy">—</div><p class="note">The most distant human-made object, still transmitting.</p></div>
+          <div class="live glass reveal" data-delay="2"><div class="label">Since the first footstep on the Moon</div><div class="val" id="live-moon">—</div><p class="note">Neil Armstrong, 21 July 1969, 02:56:15 UTC.</p></div>
+          <div class="live glass reveal" data-delay="3"><div class="label">ISS orbits since first crew</div><div class="val" id="live-iss">—</div><p class="note">Continuously inhabited since 2 November 2000.</p></div>
+          <div class="live glass reveal" data-delay="4"><div class="label">Humans born since you arrived</div><div class="val" id="live-born">—</div><p class="note">Each one arriving into the most capable civilisation that has ever existed.</p></div>
+        </div>
+        <p class="live-src reveal">Estimates extrapolated from UN WPP 2024 and NASA/JPL published rates. Indicative, not measured.</p>
+      </div>
+    </section>
+
+    <!-- =============================== YOU ============================== -->
+    <section id="you" class="section" data-scene="helix">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow reveal">06 — Your place</p>
+          <h2 class="h2 reveal" data-delay="1">You are <em>part of this</em></h2>
+          <p class="lede reveal" data-delay="2">Every achievement on this page was made by someone who was once a child who did not know what they would do. Tell us when you arrived.</p>
+        </div>
+        <div class="you-grid">
+          <form class="you-form glass reveal" id="you-form" autocomplete="off" novalidate>
+            <label for="birth-year">Year you were born</label>
+            <div class="field">
+              <input type="number" id="birth-year" placeholder="1990" min="1900" max="2026" inputmode="numeric">
+              <button class="btn primary" type="submit">Go</button>
+            </div>
+            <p class="hint">Nothing is stored or sent anywhere. The maths happens in your browser.</p>
+          </form>
+          <div class="you-out reveal" data-delay="1" id="you-out">
+            <p class="empty">Enter a year to see the milestones that happened in your lifetime.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= VOICES ============================= -->
+    <section id="voices" class="section" data-scene="embers">
+      <div class="wrap">
+        <p class="eyebrow reveal" style="justify-content:center">07 — Voices</p>
+        <h2 class="h2 reveal" data-delay="1">What they <em>said</em></h2>
+        <div class="quote-stage reveal" data-delay="2" id="quotes"></div>
+        <div class="quote-ctl reveal" data-delay="3">
+          <button class="icon-btn" id="q-prev" aria-label="Previous quote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <div class="dots" id="q-dots"></div>
+          <button class="icon-btn" id="q-next" aria-label="Next quote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= FINALE ============================= -->
+    <section id="finale" class="section" data-scene="warp">
+      <div class="finale-inner">
+        <p class="eyebrow reveal" style="justify-content:center">08 — Finale</p>
+        <h2 class="finale-title reveal" data-delay="1">We are the universe<br> <em>looking back at itself.</em></h2>
+        <p class="finale-text reveal" data-delay="2">Everything on this page was done by ordinary people — curious, stubborn, collaborative, often wrong, occasionally magnificent. None of it was inevitable. All of it was chosen. The next chapter is not written yet. It will be written by someone. It might as well be you.</p>
+        <div class="mark glass reveal" data-delay="3" id="mark">
+          <label for="mark-name">Light a star with your name</label>
+          <div class="field">
+            <input type="text" id="mark-name" placeholder="Your name" maxlength="40">
+            <button class="btn primary" id="mark-btn" type="button">Light</button>
+          </div>
+          <p class="count" id="mark-count">Your star is saved only in this browser. No one else sees it. That is the point — it is yours.</p>
+          <p class="done" id="mark-done"></p>
+        </div>
+        <div class="finale-actions reveal" data-delay="4">
+          <button class="btn" id="share-btn">Share this</button>
+          <a class="btn ghost" href="#hero">Begin again ↑</a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="foot">
+      <div>
+        <h5>About</h5>
+        <p>HUMANITY is an open, static web monument to human achievement. It runs entirely in your browser with no tracking, no cookies and no backend — it can be hosted from any GitHub repository with GitHub Pages.</p>
+      </div>
+      <div>
+        <h5>Footage &amp; sources</h5>
+        <ul>
+          <li><a href="https://www.nasa.gov" target="_blank" rel="noopener">NASA · JPL · Goddard</a></li>
+          <li><a href="https://home.cern" target="_blank" rel="noopener">CERN</a></li>
+          <li><a href="https://www.who.int" target="_blank" rel="noopener">World Health Organization</a></li>
+          <li><a href="https://ourworldindata.org" target="_blank" rel="noopener">Our World in Data</a></li>
+          <li><a href="https://airandspace.si.edu" target="_blank" rel="noopener">Smithsonian Air &amp; Space</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Explore</h5>
+        <ul>
+          <li><a href="#calendar">Cosmic Calendar</a></li>
+          <li><a href="#journey">The Journey</a></li>
+          <li><a href="#galleries">The Galleries</a></li>
+          <li><a href="#you">Your place in the story</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>Videos are embedded from their official publishers and remain their property.</span>
+      <span>Built with care, for everyone. ✦</span>
+    </div>
+  </footer>
+
+  <!-- Modal -->
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden>
+    <div class="modal-bg" data-close></div>
+    <div class="modal-box glass">
+      <button class="icon-btn modal-close" data-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div class="modal-media" id="modal-media" hidden></div>
+      <div class="modal-body">
+        <div class="year" id="modal-year"></div>
+        <h3 id="modal-title"></h3>
+        <p class="sub" id="modal-sub"></p>
+        <p class="text" id="modal-text"></p>
+        <div class="modal-facts" id="modal-facts"></div>
+        <p class="modal-src" id="modal-src"></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="glass" role="status" aria-live="polite"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/cosmos.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
