@@ -1,0 +1,4 @@
+# media fetch scratch
+media/.tmp/
+*.part
+*.ytdl

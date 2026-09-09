@@ -68,6 +68,21 @@ If the stream cannot start (blocked network, autoplay policy), the film keeps it
 * `js/film.js` — the editor: preloader, gate, beat clock, cuts, HUD, hand-off to the monument.
 * `css/film.css` — the look.
 
+### Local media (recommended)
+
+Streaming from YouTube means buffering, compression and ads-free-but-slow first frames. To bundle everything with the site instead:
+
+```bash
+pip install yt-dlp        # or: brew install yt-dlp
+sudo apt install ffmpeg   # or: brew install ffmpeg
+node tools/fetch-media.js # → media/audio, media/clips, media/stills, media/manifest.json
+git add media && git commit -m "Bundle film media"
+```
+
+The script downloads the track as 160 kbps AAC, cuts each clip to the exact window the film uses and re-encodes it as a lean 1080p H.264 MP4 (muted, fast-start), and saves every still at up to 3840 px. `film.js` reads `media/manifest.json` at boot: the soundtrack becomes a plain `<audio>` element (sample-accurate clock, no iframe), clips become `<video>` elements (instant cuts, full resolution), stills load from the repo. Anything not in the manifest still streams, so partial fetches are fine (`--audio`, `--clips`, `--stills`, `--clip apollo`, `--max 2560`).
+
+Note on rights: the archival clips and stills are public domain / CC and safe to redistribute; the soundtrack is commercial music — bundle it only if you hold the rights, otherwise leave `media/audio/` out and it streams.
+
 ### Tuning the beat grid
 
 Tempo and first-downbeat offset live in `TIMING` at the top of `js/film-script.js` and can be overridden without editing: `?bpm=96.7&offset=0.12`. Open `?debug=1`, enter with audio, and tap **T** on the beat (≥4 taps) or press **O** on a downbeat; arrows nudge (←/→ offset, ↑/↓ bpm), `[`/`]` seek, and the overlay prints the URL params to paste back into the script.

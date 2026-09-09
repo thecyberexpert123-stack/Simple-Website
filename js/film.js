@@ -76,13 +76,21 @@
   const screenPx = Math.round(Math.max(window.innerWidth, window.innerHeight) * Math.min(window.devicePixelRatio || 1, 2) * KB_MAX);
   const want = screenPx > 2560 ? 3840 : screenPx > 1920 ? 2560 : screenPx > 1280 ? 1920 : 1280;
   const LOWRES = 1500; // originals narrower than this are shown 'contained' on a soft backdrop instead of stretched
-  function urlFor(def, width) {
-    const f = encodeURIComponent(def.file).replace(/%2C/g, ',').replace(/%27/g, "'").replace(/%28/g, '(').replace(/%29/g, ')').replace(/%21/g, '!').replace(/%2A/g, '*').replace(/%26/g, '%26');
-    const base = `https://upload.wikimedia.org/wikipedia/commons/${def.h[0]}/${def.h}/${f}`;
-    if (!width || width >= def.w) return base;
-    return `https://upload.wikimedia.org/wikipedia/commons/thumb/${def.h[0]}/${def.h}/${f}/${width}px-${f}`;
-  }
+  const urlFor = S.urlFor;
   Object.values(S.IMAGES).forEach((d) => { d.src = urlFor(d, want); d.srcLo = urlFor(d, 1280); d.low = d.w < LOWRES; d.page = `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(d.file)}`; });
+
+  /* Local media (media/manifest.json, produced by tools/fetch-media.js). When present, stills, clips and the
+     soundtrack are served from the repo itself — no YouTube / Wikimedia at runtime. Missing entries fall back. */
+  const LOCAL = { audio: null, clips: {}, stills: {} };
+  async function loadManifest() {
+    try {
+      const r = await fetch('media/manifest.json', { cache: 'no-cache' }); if (!r.ok) return;
+      const m = await r.json();
+      if (m.audio?.file) LOCAL.audio = m.audio;
+      Object.assign(LOCAL.clips, m.clips || {}); Object.assign(LOCAL.stills, m.stills || {});
+      Object.entries(LOCAL.stills).forEach(([k, v]) => { const d = S.IMAGES[k]; if (!d) return; d.src = v.file; d.srcLo = v.file; d.local = true; d.low = (v.width || d.w) < LOWRES && d.w < LOWRES; });
+    } catch (e) { /* no local media — stream */ }
+  }
 
   const imgState = {}; const imgCache = {};
   function loadImage(key) {
@@ -107,7 +115,28 @@
   /* Music (YouTube IFrame API) with graceful fallback                */
   /* ---------------------------------------------------------------- */
   const startAt = Math.max(0, parseFloat(q.get('t')) || 0);
-  const music = { api: false, player: null, ready: false, playing: false, failed: false, muted: false, everPlayed: false, pending: false, wantStart: false };
+  const music = { mode: 'none', api: false, player: null, audio: null, ready: false, playing: false, failed: false, muted: false, everPlayed: false, wantStart: false };
+  const NOW_HTML = nowTitle.innerHTML;
+  function showAudioWarn(msg) { nowPlaying.classList.add('show', 'warn'); nowTitle.textContent = msg; }
+  function onPlaying() {
+    if (!music.everPlayed && startAt > 0) seekMusic(startAt);
+    music.playing = true; music.everPlayed = true; clock.syncHard();
+    nowPlaying.classList.add('show'); nowPlaying.classList.remove('warn'); nowTitle.innerHTML = NOW_HTML + (music.mode === 'local' ? ' <i class="mono">· local</i>' : '');
+    if (window.Ambient?.enabled) window.Ambient.disable();
+  }
+
+  /* -- local file -- */
+  function createLocalAudio() {
+    const a = new Audio(); a.src = LOCAL.audio.file; a.preload = 'auto'; a.loop = true; a.crossOrigin = 'anonymous'; a.playsInline = true;
+    a.addEventListener('playing', onPlaying);
+    a.addEventListener('pause', () => { music.playing = false; });
+    a.addEventListener('waiting', () => { music.playing = false; });
+    a.addEventListener('error', () => { music.audio = null; music.mode = 'none'; if (music.api) { music.mode = 'yt'; createPlayer(); if (music.wantStart) startMusic(); } else { music.failed = true; } });
+    a.addEventListener('canplaythrough', () => { music.ready = true; if (music.wantStart && !music.everPlayed) startMusic(); }, { once: true });
+    music.audio = a; music.mode = 'local'; a.load();
+  }
+
+  /* -- YouTube IFrame API -- */
   function loadYT() {
     return new Promise((res) => {
       if (window.YT && window.YT.Player) { music.api = true; return res(true); }
@@ -122,14 +151,13 @@
     if (!music.api || music.player) return;
     try {
       music.player = new YT.Player('yt-player', {
-        videoId: T.videoId, width: 320, height: 180,
-        host: 'https://www.youtube.com',
+        videoId: T.videoId, width: 320, height: 180, host: 'https://www.youtube.com',
         playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, playsinline: 1, rel: 0, iv_load_policy: 3, modestbranding: 1, origin: location.origin, enablejsapi: 1 },
         events: {
           onReady: () => { music.ready = true; if (music.wantStart) startMusic(); },
           onStateChange: (e) => {
             const st = e.data;
-            if (st === YT.PlayerState.PLAYING) { if (!music.everPlayed && startAt > 0) { try { music.player.seekTo(startAt, true); } catch (err) { /* noop */ } } music.playing = true; music.everPlayed = true; clock.syncHard(); nowPlaying.classList.add('show'); nowPlaying.classList.remove('warn'); nowTitle.innerHTML = NOW_HTML; if (window.Ambient?.enabled) window.Ambient.disable(); }
+            if (st === YT.PlayerState.PLAYING) onPlaying();
             else if (st === YT.PlayerState.PAUSED) { music.playing = false; if (!finished && !music.muted && music.everPlayed) { try { music.player.playVideo(); } catch (err) { /* noop */ } } }
             else if (st === YT.PlayerState.BUFFERING || st === YT.PlayerState.CUED) music.playing = false;
             else if (st === YT.PlayerState.ENDED) { music.playing = false; try { music.player.seekTo(0, true); music.player.playVideo(); } catch (err) { /* noop */ } }
@@ -137,40 +165,52 @@
           onError: () => { music.failed = true; music.playing = false; showAudioWarn('soundtrack unavailable (video blocked here) — playing ambient score'); if (withAudio) window.Ambient?.enable(); }
         }
       });
+      music.mode = 'yt';
     } catch (e) { music.failed = true; }
   }
-  const NOW_HTML = nowTitle.innerHTML;
-  function showAudioWarn(msg) { nowPlaying.classList.add('show', 'warn'); nowTitle.textContent = msg; }
+
+  /* -- common controls -- */
+  function rawPlay() {
+    if (music.mode === 'local' && music.audio) { music.audio.muted = false; music.audio.volume = 1; return music.audio.play().catch(() => { /* autoplay policy — retried on gesture */ }); }
+    if (music.mode === 'yt' && music.player) { try { music.player.unMute(); music.player.setVolume(100); music.player.playVideo(); } catch (e) { /* noop */ } }
+    return Promise.resolve();
+  }
+  function seekMusic(sec) {
+    if (music.mode === 'local' && music.audio) { try { music.audio.currentTime = sec; } catch (e) { /* noop */ } }
+    else if (music.mode === 'yt' && music.player) { try { music.player.seekTo(sec, true); } catch (e) { /* noop */ } }
+  }
+  function currentTime() {
+    if (music.mode === 'local' && music.audio) return music.audio.currentTime;
+    if (music.mode === 'yt' && music.player) { try { return music.player.getCurrentTime(); } catch (e) { return -1; } }
+    return -1;
+  }
+  function setVolume(v) { if (music.mode === 'local' && music.audio) music.audio.volume = v / 100; else if (music.player) { try { music.player.setVolume(v); } catch (e) { /* noop */ } } }
   function startMusic() {
     if (music.failed) return false;
     music.wantStart = true;
-    if (!music.player) return false;
-    if (!music.ready) return true; // will start in onReady (still inside the user-gesture grace period on most browsers)
-    try {
-      music.player.unMute(); music.player.setVolume(100);
-      music.player.playVideo();
-      // Browsers may swallow the first play() if the iframe wasn't fully warm; retry a few times, then tell the user
-      let tries = 0; const iv = setInterval(() => {
-        if (music.everPlayed || finished || music.failed) { clearInterval(iv); return; }
-        tries++; try { music.player.playVideo(); } catch (e) { /* noop */ }
-        if (tries === 3) showAudioWarn('tap anywhere to start the soundtrack');
-        if (tries > 12) { clearInterval(iv); }
-      }, 700);
-      // any gesture retries playback (mobile autoplay policies)
-      const kick = () => { if (!music.everPlayed && !music.failed) { try { music.player.unMute(); music.player.playVideo(); } catch (e) { /* noop */ } } };
-      ['pointerdown', 'keydown', 'touchend'].forEach((ev) => addEventListener(ev, kick, { passive: true }));
-      return true;
-    } catch (e) { music.failed = true; return false; }
+    if (music.mode === 'none') return false;
+    rawPlay();
+    let tries = 0; const iv = setInterval(() => {
+      if (music.everPlayed || finished || music.failed) { clearInterval(iv); return; }
+      tries++; rawPlay();
+      if (tries === 3) showAudioWarn('tap anywhere to start the soundtrack');
+      if (tries > 12) clearInterval(iv);
+    }, 700);
+    const kick = () => { if (!music.everPlayed && !music.failed) rawPlay(); };
+    ['pointerdown', 'keydown', 'touchend'].forEach((ev) => addEventListener(ev, kick, { passive: true }));
+    return true;
   }
-  function musicActive() { return !!(music.player && music.everPlayed && !music.failed); }
+  function musicActive() { return !!(music.everPlayed && !music.failed); }
   function toggleMusic() {
     if (!musicActive()) return false;
-    try { if (music.muted) { music.player.unMute(); music.player.playVideo(); music.muted = false; } else { music.player.mute(); music.muted = true; } } catch (e) { /* noop */ }
+    music.muted = !music.muted;
+    if (music.mode === 'local' && music.audio) { music.audio.muted = music.muted; if (!music.muted) music.audio.play().catch(() => { /* noop */ }); }
+    else if (music.player) { try { if (music.muted) music.player.mute(); else { music.player.unMute(); music.player.playVideo(); } } catch (e) { /* noop */ } }
     return !music.muted;
   }
   function settleMusic() { // after the film: keep the track as the site's soundtrack, quieter
     if (!musicActive()) return;
-    let v = 100; const iv = setInterval(() => { v -= 4; try { music.player.setVolume(Math.max(38, v)); } catch (e) { /* noop */ } if (v <= 38) clearInterval(iv); }, 60);
+    let v = 100; const iv = setInterval(() => { v -= 4; setVolume(Math.max(38, v)); if (v <= 38) clearInterval(iv); }, 60);
   }
 
   /* ---------------------------------------------------------------- */
@@ -183,7 +223,7 @@
       if (!this.running) return 0;
       const local = this.base + ((performance.now() - this.t0) / 1000) * this.speed;
       if (music.playing && !music.failed) {
-        let s = -1; try { s = music.player.getCurrentTime(); } catch (e) { s = -1; }
+        const s = currentTime();
         if (s >= 0) {
           this.source = 'stream';
           if (s !== this.lastSample) {
@@ -198,8 +238,8 @@
       this.source = 'timer';
       return local;
     },
-    syncHard() { try { const s = music.player.getCurrentTime(); if (s >= 0) { this.base = s; this.t0 = performance.now(); } } catch (e) { /* noop */ } },
-    seek(sec) { this.base = sec; this.t0 = performance.now(); if (musicActive()) { try { music.player.seekTo(sec, true); } catch (e) { /* noop */ } } }
+    syncHard() { const s = currentTime(); if (s >= 0) { this.base = s; this.t0 = performance.now(); } },
+    seek(sec) { this.base = sec; this.t0 = performance.now(); if (musicActive()) seekMusic(sec); }
   };
 
   /* ---------------------------------------------------------------- */
@@ -228,12 +268,21 @@
   statusEl.textContent = S.PRELOAD_LINES[0];
   async function preload() {
     requestAnimationFrame(preTick);
+    await withTimeout(loadManifest(), 3000); setTarget(5);
     const tasks = [];
     const bump = (n) => () => setTarget(targetPct + n);
     tasks.push(withTimeout((document.fonts?.load('800 40px Syne') || Promise.resolve()).then(() => document.fonts?.load('400 12px "Space Mono"')), 2500).then(bump(10)));
     firstKeys.forEach((k) => tasks.push(withTimeout(loadImage(k), 6000).then(bump(50 / firstKeys.length))));
-    const yt = loadYT().then((ok) => { if (ok === true) createPlayer(); return ok; });
-    tasks.push(withTimeout(yt, 5000).then(bump(20)));
+    if (LOCAL.audio) {
+      createLocalAudio();
+      tasks.push(withTimeout(new Promise((r) => music.audio.addEventListener('canplaythrough', r, { once: true })), 8000).then(bump(20)));
+      loadYT(); // warm the API quietly as a fallback if the file fails
+    } else {
+      const yt = loadYT().then((ok) => { if (ok === true) createPlayer(); return ok; });
+      tasks.push(withTimeout(yt, 5000).then(bump(20)));
+    }
+    // warm local clips so the first frame is instant
+    shots.forEach((sh) => { const m = sh.media; if (typeof m === 'object' && m.yt) { const key = Object.keys(S.CLIPS).find((k) => S.CLIPS[k] === m); if (key && LOCAL.clips[key]) { const l = document.createElement('link'); l.rel = 'preload'; l.as = 'video'; l.href = LOCAL.clips[key].file; document.head.appendChild(l); } } });
     tasks.push(new Promise((r) => setTimeout(r, 1800)).then(bump(20)));
     await Promise.all(tasks); setTarget(100);
     allKeys.forEach((k) => loadImage(k)); // warm the rest in the background
@@ -249,7 +298,8 @@
     $('#fgate-length').textContent = fmtT(totalSeconds());
     $('#fgate-cuts').textContent = String(shots.length);
     try { if (localStorage.getItem('humanity.filmSeen')) $('#fgate-eyebrow').textContent = 'Welcome back, explorer'; } catch (e) { /* noop */ }
-    if (music.failed || !music.player) { $('#enter-audio .fbtn-tag').textContent = music.player ? '( recommended )' : '( audio may be unavailable )'; }
+    if (music.mode === 'none' || music.failed) $('#enter-audio .fbtn-tag').textContent = '( audio may be unavailable )';
+    if (LOCAL.audio) $('#fgate-src').textContent = 'bundled with the site';
     const clockEl = $('#fgate-clock'); const tickClock = () => { clockEl.textContent = new Date().toTimeString().slice(0, 8) + ' LOCAL'; }; tickClock(); setInterval(tickClock, 1000);
     const mk = (root) => { const track = root.querySelector('.marquee-track'); const html = S.TAGS.map((t) => `<span><i>[</i>${esc(t)}<i style="margin:0 0 0 22px">]</i></span>`).join(''); track.innerHTML = html + html; };
     mk($('#fgate-marquee')); mk($('#stage-marquee'));
@@ -313,7 +363,19 @@
     const m = shot.media; const frame = el('div', 'frame');
     if (typeof m === 'object' && m.mode) { frame.appendChild(gen(shot.chapter.kind === 'open' ? '' : (shot.chapter.title || ''), `( ${shot.chapter.code} )`, true)); slot.dataset.kind = 'gen'; return frame; }
     if (typeof m === 'string') { frame.appendChild(still(shot, slot, m)); return frame; }
-    // clip: poster + muted YouTube iframe (poster stays underneath until the video is visibly playing)
+    const clipKey = Object.keys(S.CLIPS).find((k) => S.CLIPS[k] === m);
+    const local = clipKey && LOCAL.clips[clipKey];
+    if (local) {
+      // local clip: real <video>, poster underneath, full resolution, no chrome
+      const c = el('div', 'media clip local');
+      const poster = el('img', 'poster'); poster.alt = ''; poster.src = local.poster || S.IMAGES[m.fallback]?.src || ''; poster.onerror = () => poster.remove(); c.appendChild(poster);
+      const v = document.createElement('video'); v.muted = true; v.defaultMuted = true; v.playsInline = true; v.loop = true; v.preload = 'auto'; v.disablePictureInPicture = true; v.setAttribute('aria-hidden', 'true'); v.tabIndex = -1;
+      v.src = local.file; v.addEventListener('playing', () => v.classList.add('live'), { once: true });
+      // if the file is missing or undecodable, fall back to the Ken Burns still so the beat is never empty
+      v.addEventListener('error', () => { if (!c.isConnected) return; const s = still(shot, slot, m.fallback); c.replaceWith(s); slot.dataset.kind = 'img'; delete slot.dataset.video; }, { once: true });
+      c.appendChild(v); frame.appendChild(c); slot.dataset.kind = 'clip'; slot.dataset.video = '1'; return frame;
+    }
+    // streamed clip: poster + muted YouTube iframe (poster stays underneath until the video is visibly playing)
     const c = el('div', 'media clip'); c.appendChild(still(shot, slot, m.fallback));
     const ifr = document.createElement('iframe');
     const id = m.yt; const start = m.start || 0;
@@ -322,7 +384,7 @@
     ifr.addEventListener('load', () => setTimeout(() => ifr.classList.add('live'), 1400));
     c.appendChild(ifr); frame.appendChild(c); slot.dataset.kind = 'clip'; return frame;
   }
-  function makeSlot(shot) { const slot = el('div', 'slot'); slot.dataset.shot = shot.index; slot.appendChild(mediaFor(shot, slot)); slots.appendChild(slot); return slot; }
+  function makeSlot(shot) { const slot = el('div', 'slot'); slot.dataset.shot = shot.index; slot.appendChild(mediaFor(shot, slot)); slots.appendChild(slot); const v = slot.querySelector('video'); if (v) v.play().catch(() => { /* will retry on show */ }); return slot; }
   function prewarm(shot) { if (prewarmed.has(shot.index)) return; prewarmed.set(shot.index, makeSlot(shot)); }
 
   function stageFx(cls, ms) { if (reduced) return; stage.classList.remove(cls); void stage.offsetWidth; stage.classList.add(cls); setTimeout(() => stage.classList.remove(cls), ms); }
@@ -360,13 +422,15 @@
     slot.classList.add('on', 'tr-' + tr);
     if (prev) { prev.classList.remove('on'); prev.classList.add('off', 'tr-' + tr); }
     void slot.offsetWidth; slot.classList.add('go');
+    const vid = slot.querySelector('video'); if (vid) { if (vid.paused) vid.play().catch(() => { /* noop */ }); }
+    if (prev) prev.querySelectorAll('video').forEach((pv) => setTimeout(() => { pv.pause(); pv.removeAttribute('src'); pv.load(); }, 900));
     if (!hard) { FX[tr]?.(); if (!titlecard) slamWord(shot.word, shot.beats); }
     curSlot = slot;
     if (prev) setTimeout(() => { prev.classList.add('gone'); setTimeout(() => prev.remove(), 600); }, 550);
     // caption + credit
     capEl.textContent = shot.caption || ''; capEl.classList.toggle('on', !!shot.caption);
     const key = keyOf(shot.media); const def = key && S.IMAGES[key];
-    if (typeof shot.media === 'object' && shot.media.yt) creditEl.textContent = 'footage · youtube.com/watch?v=' + shot.media.yt;
+    if (typeof shot.media === 'object' && shot.media.yt) { const ck = Object.keys(S.CLIPS).find((k) => S.CLIPS[k] === shot.media); creditEl.textContent = (S.CLIPS[ck]?.title ? S.CLIPS[ck].title + ' · ' : 'footage · ') + 'youtube.com/watch?v=' + shot.media.yt; }
     else creditEl.textContent = def && slot.dataset.kind === 'img' ? `${def.credit} · ${def.license}` : '';
     // prewarm upcoming clips (~5 s ahead) so iframes are already playing when they cut in
     for (let j = i + 1; j < shots.length && shots[j].start - shot.start < Math.ceil(5 / spb()) + 1; j++) { const mj = shots[j].media; if (typeof mj === 'object' && mj.yt) prewarm(shots[j]); }
@@ -504,6 +568,6 @@
   }
   bpmEl.textContent = T.bpm.toFixed(1) + ' BPM';
 
-  window.Film = { musicActive, toggleMusic, seek: (s) => clock.seek(s), get timing() { return T; }, chapters, shots, images: S.IMAGES };
+  window.Film = { musicActive, toggleMusic, seek: (s) => clock.seek(s), get timing() { return T; }, chapters, shots, images: S.IMAGES, local: LOCAL, get music() { return music; } };
   preload();
 })();

@@ -24,6 +24,8 @@ window.FILM_SCRIPT = (function () {
 
   const TIMING = {
     videoId: 'kkq8Uz_CYmI',   // FUNK CONTRA - (Extended) - Slowed · 4:04
+    trackTitle: 'FUNK CONTRA — Extended · Slowed',
+    artist: 'Dj Samir, Nulteex, Zericxxn',
     bpm: 96.7,                // estimate — see README "Tuning the beat grid"
     offset: 0.12,             // seconds from stream start to first downbeat
     minBpm: 60, maxBpm: 160
@@ -104,22 +106,35 @@ window.FILM_SCRIPT = (function () {
     earth17: { file: 'The_Earth_seen_from_Apollo_17.jpg', h: '97', w: 3000, credit: 'Earth from Apollo 17, 1972 — NASA', license: 'Public domain' }
   };
 
+  /* Direct Wikimedia URL for a still at a given width (original if the
+     request is wider than the file). Shared by the browser and by
+     tools/fetch-media.js. */
+  function urlFor(def, width) {
+    const f = encodeURIComponent(def.file).replace(/%2C/g, ',').replace(/%27/g, "'").replace(/%28/g, '(').replace(/%29/g, ')').replace(/%21/g, '!').replace(/%2A/g, '*');
+    const base = `https://upload.wikimedia.org/wikipedia/commons/${def.h[0]}/${def.h}/${f}`;
+    if (!width || width >= def.w) return base;
+    return `https://upload.wikimedia.org/wikipedia/commons/thumb/${def.h[0]}/${def.h}/${f}/${width}px-${f}`;
+  }
+
   /* ------------------------------------------------------------------
-     Muted archival clips (YouTube, official channels). `start` is a
-     seek position in seconds; every clip has a still as fallback.
+     Muted archival clips (YouTube, official channels). `start` is the
+     in-point in seconds, `len` how many seconds of footage the film can
+     use (tools/fetch-media.js trims to this window and stores it in
+     media/clips/<key>.mp4 — the local file then starts at 0).
+     Every clip has a still as fallback. `live` streams can't be saved.
      ------------------------------------------------------------------ */
   const CLIPS = {
-    wright: { yt: 'FnML3I-yYyo', start: 24, fallback: 'flight' },
-    apollo: { yt: 'pJbtYs0oZfQ', start: 95, fallback: 'aldrin' },
-    earthrise: { yt: 'dE-vOscpiNc', start: 40, fallback: 'earthrise' },
-    falcon: { yt: 'wbSwFU6tY1c', start: 1850, fallback: 'falcon' },
-    mars: { yt: '4czjS9h4Fpg', start: 150, fallback: 'curiosity' },
-    issLive: { yt: 'uwXgcTc8oY8', start: 0, fallback: 'iss' },
-    starship: { yt: 'hI9HQfCAw64', start: 30, fallback: 'falcon' },
-    webb: { yt: 'nmMRMIE3MGw', start: 1290, fallback: 'webb' },
-    blackhole: { yt: 'Dr20f19czeE', start: 5, fallback: 'bh' },
-    higgs: { yt: 'm-dNqCbRc_Y', start: 10, fallback: 'higgs' },
-    fusion: { yt: '6Eh2rZAD6uc', start: 20, fallback: 'trinity' }
+    wright: { yt: 'FnML3I-yYyo', start: 24, len: 12, fallback: 'flight', title: 'Flying the Wright Flyer — Smithsonian' },
+    apollo: { yt: 'pJbtYs0oZfQ', start: 95, len: 12, fallback: 'aldrin', title: 'Apollo 11 moonwalk — NASA / NFSA' },
+    earthrise: { yt: 'dE-vOscpiNc', start: 40, len: 10, fallback: 'earthrise', title: 'Earthrise reconstruction — NASA Goddard' },
+    falcon: { yt: 'wbSwFU6tY1c', start: 1850, len: 8, fallback: 'falcon', title: 'Falcon Heavy test flight — SpaceX' },
+    mars: { yt: '4czjS9h4Fpg', start: 150, len: 10, fallback: 'curiosity', title: 'Perseverance landing — NASA' },
+    issLive: { yt: 'uwXgcTc8oY8', start: 0, len: 10, fallback: 'iss', live: true, title: 'ISS live stream — NASA' },
+    starship: { yt: 'hI9HQfCAw64', start: 30, len: 12, fallback: 'falcon', title: 'Starship Flight 5 — SpaceX' },
+    webb: { yt: 'nmMRMIE3MGw', start: 1290, len: 8, fallback: 'webb', title: 'Webb first images — NASA' },
+    blackhole: { yt: 'Dr20f19czeE', start: 5, len: 10, fallback: 'bh', title: 'First image of a black hole — EHT' },
+    higgs: { yt: 'm-dNqCbRc_Y', start: 10, len: 8, fallback: 'higgs', title: 'Higgs discovery — CERN' },
+    fusion: { yt: '6Eh2rZAD6uc', start: 20, len: 6, fallback: 'trinity', title: 'Fusion ignition — LLNL' }
   };
 
   /* ------------------------------------------------------------------
@@ -315,5 +330,5 @@ window.FILM_SCRIPT = (function () {
   ];
 
   void Y;
-  return { TIMING, IMAGES, CLIPS, CHAPTERS, TAGS, PRELOAD_LINES };
+  return { TIMING, IMAGES, CLIPS, CHAPTERS, TAGS, PRELOAD_LINES, urlFor };
 })();
