@@ -70,16 +70,19 @@
   /* ---------------------------------------------------------------- */
   /* Assets — Commons renditions sized to the screen                  */
   /* ---------------------------------------------------------------- */
-  const screenPx = Math.min(2560, Math.round(Math.max(window.innerWidth, window.innerHeight) * Math.min(window.devicePixelRatio || 1, 2)));
-  const want = screenPx > 1920 ? 2560 : screenPx > 1280 ? 1920 : 1280;
+  // Rendition width: physical pixels of the long screen edge × the maximum Ken Burns zoom (1.16), snapped to
+  // Wikimedia's cached thumb sizes so the picture is never shown larger than its own pixels.
+  const KB_MAX = 1.16;
+  const screenPx = Math.round(Math.max(window.innerWidth, window.innerHeight) * Math.min(window.devicePixelRatio || 1, 2) * KB_MAX);
+  const want = screenPx > 2560 ? 3840 : screenPx > 1920 ? 2560 : screenPx > 1280 ? 1920 : 1280;
+  const LOWRES = 1500; // originals narrower than this are shown 'contained' on a soft backdrop instead of stretched
   function urlFor(def, width) {
     const f = encodeURIComponent(def.file).replace(/%2C/g, ',').replace(/%27/g, "'").replace(/%28/g, '(').replace(/%29/g, ')').replace(/%21/g, '!').replace(/%2A/g, '*').replace(/%26/g, '%26');
     const base = `https://upload.wikimedia.org/wikipedia/commons/${def.h[0]}/${def.h}/${f}`;
     if (!width || width >= def.w) return base;
-    const isPng = /\.png$/i.test(def.file);
-    return `https://upload.wikimedia.org/wikipedia/commons/thumb/${def.h[0]}/${def.h}/${f}/${width}px-${f}${isPng ? '.png' : ''}`;
+    return `https://upload.wikimedia.org/wikipedia/commons/thumb/${def.h[0]}/${def.h}/${f}/${width}px-${f}`;
   }
-  Object.values(S.IMAGES).forEach((d) => { d.src = urlFor(d, want); d.srcLo = urlFor(d, 1280); d.page = `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(d.file)}`; });
+  Object.values(S.IMAGES).forEach((d) => { d.src = urlFor(d, want); d.srcLo = urlFor(d, 1280); d.low = d.w < LOWRES; d.page = `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(d.file)}`; });
 
   const imgState = {}; const imgCache = {};
   function loadImage(key) {
@@ -103,6 +106,7 @@
   /* ---------------------------------------------------------------- */
   /* Music (YouTube IFrame API) with graceful fallback                */
   /* ---------------------------------------------------------------- */
+  const startAt = Math.max(0, parseFloat(q.get('t')) || 0);
   const music = { api: false, player: null, ready: false, playing: false, failed: false, muted: false, everPlayed: false, pending: false, wantStart: false };
   function loadYT() {
     return new Promise((res) => {
@@ -125,7 +129,7 @@
           onReady: () => { music.ready = true; if (music.wantStart) startMusic(); },
           onStateChange: (e) => {
             const st = e.data;
-            if (st === YT.PlayerState.PLAYING) { music.playing = true; music.everPlayed = true; clock.syncHard(); nowPlaying.classList.add('show'); nowPlaying.classList.remove('warn'); nowTitle.innerHTML = NOW_HTML; if (window.Ambient?.enabled) window.Ambient.disable(); }
+            if (st === YT.PlayerState.PLAYING) { if (!music.everPlayed && startAt > 0) { try { music.player.seekTo(startAt, true); } catch (err) { /* noop */ } } music.playing = true; music.everPlayed = true; clock.syncHard(); nowPlaying.classList.add('show'); nowPlaying.classList.remove('warn'); nowTitle.innerHTML = NOW_HTML; if (window.Ambient?.enabled) window.Ambient.disable(); }
             else if (st === YT.PlayerState.PAUSED) { music.playing = false; if (!finished && !music.muted && music.everPlayed) { try { music.player.playVideo(); } catch (err) { /* noop */ } } }
             else if (st === YT.PlayerState.BUFFERING || st === YT.PlayerState.CUED) music.playing = false;
             else if (st === YT.PlayerState.ENDED) { music.playing = false; try { music.player.seekTo(0, true); music.player.playVideo(); } catch (err) { /* noop */ } }
@@ -250,7 +254,7 @@
     const mk = (root) => { const track = root.querySelector('.marquee-track'); const html = S.TAGS.map((t) => `<span><i>[</i>${esc(t)}<i style="margin:0 0 0 22px">]</i></span>`).join(''); track.innerHTML = html + html; };
     mk($('#fgate-marquee')); mk($('#stage-marquee'));
     // background stills drifting behind the gate
-    const bg = $('#fgate-bg'); ['milky', 'pillars', 'aldrin', 'earthrise'].forEach((k, i) => { const d = S.IMAGES[k]; const im = el('img'); im.alt = ''; im.src = d.srcLo; im.style.animationDelay = (i * 4) + 's'; im.referrerPolicy = 'no-referrer'; im.onerror = () => im.remove(); bg.appendChild(im); });
+    const bg = $('#fgate-bg'); ['milky', 'pillars', 'aldrin', 'earthrise'].forEach((k, i) => { const d = S.IMAGES[k]; const im = el('img'); im.alt = ''; im.src = d.src; im.style.animationDelay = (i * 4) + 's'; im.referrerPolicy = 'no-referrer'; im.onerror = () => im.remove(); bg.appendChild(im); });
     setTimeout(() => { $('#enter-audio').focus({ preventScroll: true }); }, 900);
   }
   $('#enter-audio').addEventListener('click', () => enter(true));
@@ -268,9 +272,7 @@
     stage.hidden = false; $('#stage-marquee').classList.add('show');
     let musicStarted = false;
     if (audio) musicStarted = startMusic();
-    const t = parseFloat(q.get('t')) || 0;
-    clock.start(t);
-    if (musicStarted && t > 0) clock.seek(t);
+    clock.start(startAt);
     if (!musicStarted && audio) { showAudioWarn('soundtrack unavailable — playing ambient score on the local clock'); window.Ambient?.enable(); }
     if (musicStarted && audio) setTimeout(() => { if (!music.everPlayed && !finished) { window.Ambient?.enable(); } }, 6000);
     window.Cosmos?.setMode(chapters[0].mode);
@@ -298,12 +300,13 @@
   function still(shot, slot, key) {
     const def = S.IMAGES[key];
     if (!def || imgState[key] === 'fail') { slot.dataset.kind = 'gen'; return gen(genWord(shot), `( ${shot.chapter.code} · ${key} )`); }
-    const wrap = el('div', 'media');
+    const wrap = el('div', 'media' + (def.low ? ' lowres' : ''));
+    if (def.low) { const bd = el('img', 'backdrop'); bd.alt = ''; bd.src = def.src; bd.referrerPolicy = 'no-referrer'; wrap.appendChild(bd); }
     const im = el('img', 'media img kb' + (kbI++ % 6)); im.alt = ''; im.decoding = 'async'; im.referrerPolicy = 'no-referrer'; im.src = def.src;
     im.style.animationDuration = Math.max(1.2, shot.beats * spb() + 1.2) + 's';
-    im.onerror = () => { imgState[key] = 'fail'; wrap.replaceWith(gen(genWord(shot), `( ${shot.chapter.code} )`)); slot.dataset.kind = 'gen'; };
+    im.onerror = () => { if (im.src !== def.srcLo) { def.src = def.srcLo; im.src = def.srcLo; return; } imgState[key] = 'fail'; wrap.replaceWith(gen(genWord(shot), `( ${shot.chapter.code} )`)); slot.dataset.kind = 'gen'; };
     wrap.appendChild(im);
-    const gr = el('img', 'ghost r'); gr.src = def.srcLo; gr.alt = ''; gr.referrerPolicy = 'no-referrer'; const gb = el('img', 'ghost b'); gb.src = def.srcLo; gb.alt = ''; gb.referrerPolicy = 'no-referrer';
+    const gr = el('img', 'ghost r'); gr.src = def.src; gr.alt = ''; gr.referrerPolicy = 'no-referrer'; const gb = el('img', 'ghost b'); gb.src = def.src; gb.alt = ''; gb.referrerPolicy = 'no-referrer';
     wrap.appendChild(gr); wrap.appendChild(gb); slot.dataset.kind = 'img'; return wrap;
   }
   function mediaFor(shot, slot) {
@@ -314,7 +317,7 @@
     const c = el('div', 'media clip'); c.appendChild(still(shot, slot, m.fallback));
     const ifr = document.createElement('iframe');
     const id = m.yt; const start = m.start || 0;
-    ifr.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&controls=0&start=${start}&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&loop=1&playlist=${id}&vq=hd1080`;
+    ifr.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&controls=0&start=${start}&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&loop=1&playlist=${id}`;
     ifr.allow = 'autoplay; encrypted-media'; ifr.title = ''; ifr.tabIndex = -1; ifr.setAttribute('aria-hidden', 'true'); ifr.referrerPolicy = 'strict-origin-when-cross-origin';
     ifr.addEventListener('load', () => setTimeout(() => ifr.classList.add('live'), 1400));
     c.appendChild(ifr); frame.appendChild(c); slot.dataset.kind = 'clip'; return frame;
@@ -472,7 +475,7 @@
     settleMusic();
     const soundOn = musicActive() && !music.muted;
     window.HumanityApp?.enter(false, { fromFilm: true, music: soundOn, ambient: !!window.Ambient?.enabled });
-    setTimeout(() => { film.remove(); }, 1300);
+    setTimeout(() => { film.remove(); }, 1300); // #yt-host lives outside #film, so the soundtrack survives
     try { localStorage.setItem('humanity.filmSeen', String(Date.now())); } catch (e) { /* private mode */ }
     if (document.fullscreenElement && q.get('fs') === '1') document.exitFullscreen?.();
   }

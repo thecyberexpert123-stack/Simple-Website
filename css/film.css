@@ -113,7 +113,7 @@ body.filming main, body.filming footer, body.filming #nav, body.filming #progres
 /* ---------------------------------------------------------------- */
 .stage { position: absolute; inset: 0; z-index: 10; overflow: hidden; background: transparent; }
 .stage[hidden] { display: none; }
-.slot { position: absolute; inset: 0; opacity: 0; will-change: transform, opacity, clip-path; }
+.slot { position: absolute; inset: 0; opacity: 0; }
 .frame { position: absolute; inset: 0; transform: scale(1); transition: transform 0.55s var(--f-out); }
 .stage { --energy: 0.6; }
 .stage.beat .slot.on .frame { transform: scale(calc(1 + 0.018 * var(--energy))); transition-duration: 0.05s; }
@@ -122,28 +122,32 @@ body.filming main, body.filming footer, body.filming #nav, body.filming #progres
 @keyframes hudTick { 0% { transform: translateX(-3px); opacity: 0.4; } 100% { transform: none; opacity: 1; } }
 .media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .media.img { animation-fill-mode: forwards; animation-timing-function: linear; }
-.media.img { filter: contrast(1.06) saturate(1.08); image-rendering: auto; backface-visibility: hidden; }
+.media.img { image-rendering: auto; }
 .media.kb0 { animation-name: kb0; } .media.kb1 { animation-name: kb1; } .media.kb2 { animation-name: kb2; } .media.kb3 { animation-name: kb3; } .media.kb4 { animation-name: kb4; } .media.kb5 { animation-name: kb5; }
-@keyframes kb4 { from { transform: scale(1.3) translate(0, 4%); } to { transform: scale(1.04) translate(0, 0); } }
-@keyframes kb5 { from { transform: scale(1.02) rotate(-0.6deg); } to { transform: scale(1.16) rotate(0.6deg); } }
-@keyframes kb0 { from { transform: scale(1.18) translate(2%, 1%); } to { transform: scale(1.02) translate(0, 0); } }
-@keyframes kb1 { from { transform: scale(1.04) translate(0, 0); } to { transform: scale(1.2) translate(-2%, -1.5%); } }
-@keyframes kb2 { from { transform: scale(1.22) translate(-3%, 2%); } to { transform: scale(1.06) translate(1%, -1%); } }
-@keyframes kb3 { from { transform: scale(1.05) translate(1.5%, 1%); } to { transform: scale(1.18) translate(-1%, 2%); } }
+@keyframes kb0 { from { transform: scale(1.14) translate(1.5%, 1%); } to { transform: scale(1.02) translate(0, 0); } }
+@keyframes kb1 { from { transform: scale(1.03) translate(0, 0); } to { transform: scale(1.15) translate(-1.5%, -1%); } }
+@keyframes kb2 { from { transform: scale(1.16) translate(-2%, 1.5%); } to { transform: scale(1.05) translate(1%, -0.5%); } }
+@keyframes kb3 { from { transform: scale(1.04) translate(1%, 0.5%); } to { transform: scale(1.14) translate(-1%, 1.5%); } }
+@keyframes kb4 { from { transform: scale(1.16) translate(0, 3%); } to { transform: scale(1.03) translate(0, 0); } }
+@keyframes kb5 { from { transform: scale(1.02) rotate(-0.4deg); } to { transform: scale(1.13) rotate(0.4deg); } }
+/* low-resolution originals: shown at their own size on a soft backdrop instead of being stretched */
+.media.lowres .backdrop { position: absolute; inset: -8%; width: 116%; height: 116%; object-fit: cover; filter: blur(28px) brightness(0.45) saturate(1.2); transform: scale(1.05); }
+.media.lowres .img { object-fit: contain; padding: 4vh 0; box-sizing: border-box; filter: drop-shadow(0 20px 60px rgba(0, 0, 0, 0.6)); }
+@media (max-width: 700px) { .media.lowres .img { padding: 12vh 0; } }
 .ghost { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; mix-blend-mode: screen; pointer-events: none; }
 .ghost.r { filter: sepia(1) saturate(8) hue-rotate(-45deg) contrast(1.2); }
 .ghost.b { filter: sepia(1) saturate(8) hue-rotate(160deg) contrast(1.2); }
 .media.clip { overflow: hidden; background: #000; }
 .media.clip .poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.media.clip iframe { position: absolute; left: 50%; top: 50%; width: 177.78vh; min-width: 100%; height: 56.25vw; min-height: 100%; transform: translate(-50%, -50%) scale(1.28); border: 0; pointer-events: none; opacity: 0; transition: opacity 0.6s; }
+.media.clip iframe { position: absolute; left: 50%; top: 50%; width: 177.78vh; min-width: 100%; height: 56.25vw; min-height: 100%; transform: translate(-50%, -50%) scale(1.18); border: 0; pointer-events: none; opacity: 0; transition: opacity 0.6s; }
 .media.clip iframe.live { opacity: 1; }
 .media.gen { background: radial-gradient(ellipse at 50% 60%, rgba(232, 201, 138, 0.10), transparent 60%); }
 .media.gen.clear { background: transparent; }
 .gen-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px); background-size: 12.5% 25%; mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%); -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%); }
 .gen-word { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-family: var(--f-display); font-weight: 800; font-size: clamp(60px, 18vw, 260px); letter-spacing: -0.04em; white-space: nowrap; color: transparent; -webkit-text-stroke: 1px rgba(242, 239, 232, 0.22); user-select: none; }
 .gen-code { position: absolute; left: 50%; bottom: 18%; transform: translateX(-50%); font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--f-faint); }
-.stage-vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 62%, rgba(5, 5, 7, 0.5) 100%), linear-gradient(to bottom, rgba(5, 5, 7, 0.45), transparent 14%, transparent 82%, rgba(5, 5, 7, 0.6)); }
-.fx-scan { position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 4px); mix-blend-mode: overlay; opacity: 0.5; }
+.stage-vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 70%, rgba(5, 5, 7, 0.38) 100%), linear-gradient(to bottom, rgba(5, 5, 7, 0.35), transparent 12%, transparent 86%, rgba(5, 5, 7, 0.5)); }
+.fx-scan { display: none; }
 .letterbox { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
 .letterbox i { position: absolute; left: 0; right: 0; height: 0; background: #050507; transition: height 0.9s var(--f-out); }
 .letterbox i:first-child { top: 0; } .letterbox i:last-child { bottom: 0; }
@@ -189,9 +193,16 @@ body.filming main, body.filming footer, body.filming #nav, body.filming #progres
 .slot.on.tr-zoomblur { opacity: 1; transform: scale(1.6); filter: blur(14px) brightness(1.6); }
 .slot.on.tr-zoomblur.go { transform: none; filter: blur(0) brightness(1); transition: transform 0.42s var(--f-out), filter 0.42s var(--f-out); }
 .slot.off.tr-zoomblur { transform: scale(0.8); filter: blur(10px); opacity: 0; transition: transform 0.42s var(--f-io), filter 0.4s, opacity 0.3s 0.1s; }
-.slot.on.tr-shutter { opacity: 1; clip-path: polygon(0 0, 0 0, 0 12.5%, 0 12.5%, 0 25%, 0 25%, 0 37.5%, 0 37.5%, 0 50%, 0 50%, 0 62.5%, 0 62.5%, 0 75%, 0 75%, 0 87.5%, 0 87.5%, 0 100%, 0 100%); }
-.slot.on.tr-shutter.go { animation: shutter 0.42s steps(6, end) forwards; }
-@keyframes shutter { to { clip-path: inset(0 0 0 0); } }
+.slot.on.tr-shutter { opacity: 1; }
+.slot.on.tr-shutter .frame { -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0 1%, transparent 1% 12.5%); mask-image: repeating-linear-gradient(to bottom, #000 0 1%, transparent 1% 12.5%); }
+.slot.on.tr-shutter.go .frame { animation: shutter 0.45s linear both; -webkit-mask-image: none; mask-image: none; }
+@keyframes shutter {
+  0% { -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0 1.5%, transparent 1.5% 12.5%); mask-image: repeating-linear-gradient(to bottom, #000 0 1.5%, transparent 1.5% 12.5%); }
+  25% { -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0 4%, transparent 4% 12.5%); mask-image: repeating-linear-gradient(to bottom, #000 0 4%, transparent 4% 12.5%); }
+  50% { -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0 7%, transparent 7% 12.5%); mask-image: repeating-linear-gradient(to bottom, #000 0 7%, transparent 7% 12.5%); }
+  75% { -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0 10.5%, transparent 10.5% 12.5%); mask-image: repeating-linear-gradient(to bottom, #000 0 10.5%, transparent 10.5% 12.5%); }
+  100% { -webkit-mask-image: none; mask-image: none; }
+}
 .slot.on.tr-spin { opacity: 0; transform: rotate(-12deg) scale(1.5); }
 .slot.on.tr-spin.go { opacity: 1; transform: none; transition: transform 0.55s var(--f-out), opacity 0.2s; }
 .slot.off.tr-spin { transform: rotate(8deg) scale(1.2); opacity: 0; transition: transform 0.55s var(--f-io), opacity 0.35s 0.1s; }
@@ -254,9 +265,9 @@ body.filming main, body.filming footer, body.filming #nav, body.filming #progres
 /* Title cards, open lines                                          */
 /* ---------------------------------------------------------------- */
 .titlecard { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; padding: 0 24px; pointer-events: none; z-index: 5; }
-.titlecard::before { content: ''; position: absolute; inset: 0; background: rgba(5, 5, 7, 0.45); opacity: 0; transition: opacity 0.6s; }
+.titlecard::before { content: ''; position: absolute; inset: 0; background: rgba(5, 5, 7, 0.3); opacity: 0; transition: opacity 0.6s; }
 .titlecard.in::before { opacity: 1; }
-.titlecard.in.title::before { opacity: 0.3; }
+.titlecard.in.title::before { opacity: 0.5; }
 .tc-when { position: relative; color: var(--f-sig); opacity: 0; transform: translateY(10px); transition: opacity 0.5s, transform 0.7s var(--f-out); }
 .tc-title { position: relative; font-family: var(--f-display); font-weight: 800; font-size: clamp(40px, 11vw, 168px); line-height: 0.9; letter-spacing: -0.045em; margin: 14px 0 18px; text-transform: uppercase; }
 .titlecard.title .tc-title { font-size: clamp(56px, 16vw, 240px); }
@@ -322,7 +333,7 @@ body.filming main, body.filming footer, body.filming #nav, body.filming #progres
 .debug[hidden] { display: none; }
 
 /* Hidden music player (audio only). Keep it in the DOM, tiny, non-interactive. */
-#yt-host { position: absolute; left: 0; bottom: 0; width: 2px; height: 2px; overflow: hidden; opacity: 0.01; pointer-events: none; z-index: 0; }
+#yt-host { position: fixed; left: 0; bottom: 0; width: 2px; height: 2px; overflow: hidden; opacity: 0.01; pointer-events: none; z-index: 0; }
 #yt-host iframe { width: 320px; height: 180px; }
 
 /* After the film: a persistent, tiny "now playing" pill in the site nav is handled by style.css (#now-pill) */

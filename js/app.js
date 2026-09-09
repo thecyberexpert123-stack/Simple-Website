@@ -15,7 +15,19 @@
   const fmt = (n, d = 0) => Number(n).toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d });
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const PLAY_SVG = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-  const ytThumb = (id) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+  // YouTube thumbnails: try the 1280px maxres frame first; not every video has one, so fall back to sd (640) then hq (480).
+  const ytThumb = (id) => `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`;
+  const YT_FALLBACK = ['sddefault', 'hqdefault'];
+  document.addEventListener('error', (e) => {
+    const im = e.target; if (!(im instanceof HTMLImageElement) || !/i\.ytimg\.com\/vi\//.test(im.src)) return;
+    const step = +(im.dataset.fb || 0); if (step >= YT_FALLBACK.length) return;
+    im.dataset.fb = step + 1; im.src = im.src.replace(/\/[a-z]+default\.jpg$/, `/${YT_FALLBACK[step]}.jpg`);
+  }, true);
+  // maxresdefault can also "succeed" with a 120×90 grey placeholder — treat that as a miss too
+  document.addEventListener('load', (e) => {
+    const im = e.target; if (!(im instanceof HTMLImageElement) || !/i\.ytimg\.com\/vi\//.test(im.src)) return;
+    if (im.naturalWidth <= 120) { const step = +(im.dataset.fb || 0); if (step < YT_FALLBACK.length) { im.dataset.fb = step + 1; im.src = im.src.replace(/\/[a-z]+default\.jpg$/, `/${YT_FALLBACK[step]}.jpg`); } }
+  }, true);
 
   /* ---------------------------------------------------------------- */
   /* Toast                                                            */
@@ -42,6 +54,7 @@
     else if (opts.ambient) soundBtn.setAttribute('aria-pressed', 'true');
     else if (withSound) { Ambient.enable(); soundBtn.setAttribute('aria-pressed', 'true'); }
     window.scrollTo(0, 0);
+    Cosmos.setMode('stars');
   }
   window.HumanityApp = { enter, toast };
   soundBtn.addEventListener('click', () => {
@@ -77,6 +90,7 @@
   /* ---------------------------------------------------------------- */
   const CHORD = { hero: 0, calendar: 1, journey: 2, galleries: 0, numbers: 3, live: 1, you: 2, voices: 3, finale: 0 };
   const sceneIO = new IntersectionObserver((es) => {
+    if (document.body.classList.contains('filming')) return; // the film drives the cosmos while it runs
     es.forEach((e) => {
       if (!e.isIntersecting) return;
       const scene = e.target.dataset.scene; if (scene) Cosmos.setMode(scene);
