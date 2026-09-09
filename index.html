@@ -44,10 +44,11 @@
 
     <!-- Gate -->
     <div id="fgate" class="fgate" role="dialog" aria-labelledby="fgate-title">
+      <div class="fgate-bg" id="fgate-bg" aria-hidden="true"></div>
       <div class="fgate-grid" aria-hidden="true">
         <span class="fgate-corner tl mono">( P-000 ) &nbsp; A monument to what we have done</span>
         <span class="fgate-corner tr mono">● &nbsp; audio receptors recommended</span>
-        <span class="fgate-corner bl mono">Runtime <b id="fgate-length">02:44</b> &nbsp;·&nbsp; 9 chapters &nbsp;·&nbsp; 44 cuts</span>
+        <span class="fgate-corner bl mono">Runtime <b id="fgate-length">02:48</b> &nbsp;·&nbsp; 11 chapters &nbsp;·&nbsp; <b id="fgate-cuts">90</b> cuts</span>
         <span class="fgate-corner br mono" id="fgate-clock"></span>
       </div>
       <div class="fgate-inner">
@@ -75,6 +76,8 @@
     <div id="stage" class="stage" hidden>
       <div id="slots"></div>
       <div class="stage-vignette"></div>
+      <div id="words" class="words" aria-hidden="true"></div>
+      <div id="letterbox" class="letterbox" aria-hidden="true"><i></i><i></i></div>
       <div class="fx-scan" aria-hidden="true"></div>
       <div id="fx-flash" class="fx-flash" aria-hidden="true"></div>
 
@@ -82,6 +85,7 @@
         <div class="hud-progress" id="hud-progress"></div>
         <div class="hud-tl mono"><span id="hud-chapter"></span> <span class="hud-sep">/</span> <span id="hud-code"></span></div>
         <div class="hud-tr mono"><span class="hud-beats"><i></i><i></i><i></i><i></i></span><span id="hud-bpm"></span></div>
+        <div class="hud-year mono" id="hud-year"></div>
         <div class="hud-bl mono"><span id="hud-caption"></span></div>
         <div class="hud-credit mono" id="hud-credit"></div>
         <div class="hud-br mono"><span id="hud-time">00:00 / 02:44</span></div>

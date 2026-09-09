@@ -225,7 +225,9 @@ window.Cosmos = (function () {
     const y = window.scrollY; scrollVel += (y - lastScrollY) * 0.002; lastScrollY = y;
   }, { passive: true });
   document.addEventListener('visibilitychange', () => { if (document.hidden) running = false; else if (!paused) { running = true; last = performance.now(); requestAnimationFrame(frame); } });
-  let paused = false;
+  let paused = false, kick = 0, kickSpeed = 0;
+  /* beat kick: particles bloom outward from the centre and settle back */
+  function pulse(strength = 1) { kick = Math.min(1.6, kick + strength); }
   function pause() { paused = true; running = false; }
   function resume() { if (!paused) return; paused = false; running = true; last = performance.now(); requestAnimationFrame(frame); }
   // Advance the simulation by `ms` and draw one frame (used for testing / static captures)
@@ -247,6 +249,8 @@ window.Cosmos = (function () {
     const k = ease(morph);
     pointer.x = lerp(pointer.x, pointer.tx, 0.04); pointer.y = lerp(pointer.y, pointer.ty, 0.04);
     scrollVel *= 0.9;
+    kickSpeed = lerp(kickSpeed, kick, 0.5); kick *= Math.pow(0.02, dt); // fast attack, ~exponential release
+    const kickScale = 1 + kickSpeed * 0.06;
 
     const pal = PAL[mode];
     bgCur = mixColor(bgCur, pal.bg, 0.03); colA = mixColor(colA, pal.a, 0.03); colB = mixColor(colB, pal.b, 0.03);
@@ -278,8 +282,9 @@ window.Cosmos = (function () {
       px[i] = x; py[i] = y;
       const a = o[2] * (k < 1 ? 0.5 + 0.5 * k : 1);
       const c = seed3[i] > 0.5 ? colA : colB;
-      const r = size[i] * (0.8 + o[2] * 0.6);
-      const drawX = x + depthX * seed3[i], drawY = y + depthY * seed3[i];
+      const r = size[i] * (0.8 + o[2] * 0.6) * (1 + kickSpeed * 0.5);
+      let drawX = x + depthX * seed3[i], drawY = y + depthY * seed3[i];
+      if (kickSpeed > 0.005) { drawX = cx + (drawX - cx) * kickScale; drawY = cy + (drawY - cy) * kickScale; }
       ctx.globalAlpha = a;
       ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
       ctx.beginPath(); ctx.arc(drawX, drawY, r, 0, TAU); ctx.fill();
@@ -341,5 +346,5 @@ window.Cosmos = (function () {
   for (let i = 0; i < N; i++) { const o = scenes.stars(i, 0); px[i] = fx[i] = o[0]; py[i] = fy[i] = o[1]; }
   requestAnimationFrame(frame);
 
-  return { setMode, pause, resume, tick, get mode() { return mode; } };
+  return { setMode, pause, resume, tick, pulse, get mode() { return mode; } };
 })();

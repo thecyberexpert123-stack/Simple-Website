@@ -39,6 +39,7 @@
     nav.classList.add('show');
     setTimeout(() => heroTitle.classList.add('in'), 300);
     if (opts.music) { soundBtn.setAttribute('aria-pressed', 'true'); soundBtn.title = 'Soundtrack'; soundBtn.setAttribute('aria-label', 'Toggle soundtrack'); }
+    else if (opts.ambient) soundBtn.setAttribute('aria-pressed', 'true');
     else if (withSound) { Ambient.enable(); soundBtn.setAttribute('aria-pressed', 'true'); }
     window.scrollTo(0, 0);
   }

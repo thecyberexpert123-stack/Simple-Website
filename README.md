@@ -60,7 +60,9 @@ Respects `prefers-reduced-motion`, keyboard-navigable (Esc closes the modal), se
 
 ## The opening film
 
-Before the monument, the site plays a ~2¾-minute film: nine chapters and forty-odd cuts through 13.8 billion years, edited live in the browser to the beat of *FUNK CONTRA (Extended · Slowed)* — Dj Samir, Nulteex, Zericxxn — streamed from YouTube via the IFrame API (nothing is re-hosted). Archival stills come from Wikimedia Commons (credits in the HUD and in `js/film-script.js`); clips are official NASA / Smithsonian / SpaceX uploads embedded muted.
+Before the monument, the site plays a ~2¾-minute film: eleven chapters and 106 cuts through 13.8 billion years, edited live in the browser to the beat of *FUNK CONTRA (Extended · Slowed)* — Dj Samir, Nulteex, Zericxxn — streamed from YouTube via the IFrame API (nothing is re-hosted). Archival stills come from Wikimedia Commons at 1280 / 1920 / 2560 px depending on the screen (credits in the HUD and in `js/film-script.js`); eleven clips are official NASA / CERN / LLNL / Smithsonian / SpaceX uploads embedded muted. Transitions (punch, whip, iris, slice, shutter, spin, zoom-blur, burn, rise/fall, glitch, strobe, flicker) land on beats; kinetic words slam on downbeats; the particle cosmos kicks on every beat; a year odometer runs down the right edge.
+
+If the stream cannot start (blocked network, autoplay policy), the film keeps its cuts on a local clock and the site's own generative ambient score plays instead; tapping anywhere retries the soundtrack.
 
 * `js/film-script.js` — the screenplay: chapters, shots, transitions (all in beats), image credits, tempo.
 * `js/film.js` — the editor: preloader, gate, beat clock, cuts, HUD, hand-off to the monument.
