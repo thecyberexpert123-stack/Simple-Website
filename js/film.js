@@ -98,7 +98,7 @@
     const def = S.IMAGES[key]; if (!def) return Promise.resolve(false);
     imgState[key] = 'loading';
     imgCache[key] = new Promise((res) => {
-      const im = new Image(); im.decoding = 'async'; im.referrerPolicy = 'no-referrer';
+      const im = new Image(); im.decoding = 'async'; im.referrerPolicy = 'no-referrer'; im.crossOrigin = 'anonymous';
       const done = (ok) => { imgState[key] = ok ? 'ok' : 'fail'; res(ok); };
       im.onload = () => done(true);
       im.onerror = () => { if (im.src !== def.srcLo) { def.src = def.srcLo; im.src = def.srcLo; } else done(false); };
@@ -304,7 +304,7 @@
     const mk = (root) => { const track = root.querySelector('.marquee-track'); const html = S.TAGS.map((t) => `<span><i>[</i>${esc(t)}<i style="margin:0 0 0 22px">]</i></span>`).join(''); track.innerHTML = html + html; };
     mk($('#fgate-marquee')); mk($('#stage-marquee'));
     // background stills drifting behind the gate
-    const bg = $('#fgate-bg'); ['milky', 'pillars', 'aldrin', 'earthrise'].forEach((k, i) => { const d = S.IMAGES[k]; const im = el('img'); im.alt = ''; im.src = d.src; im.style.animationDelay = (i * 4) + 's'; im.referrerPolicy = 'no-referrer'; im.onerror = () => im.remove(); bg.appendChild(im); });
+    const bg = $('#fgate-bg'); ['milky', 'pillars', 'aldrin', 'earthrise'].forEach((k, i) => { const d = S.IMAGES[k]; const im = el('img'); im.alt = ''; im.crossOrigin = 'anonymous'; im.src = d.src; im.style.animationDelay = (i * 4) + 's'; im.referrerPolicy = 'no-referrer'; im.onerror = () => im.remove(); bg.appendChild(im); });
     setTimeout(() => { $('#enter-audio').focus({ preventScroll: true }); }, 900);
   }
   $('#enter-audio').addEventListener('click', () => enter(true));
@@ -320,6 +320,7 @@
     if (started) return; started = true; withAudio = audio;
     gate.classList.add('hidden'); gateTitle.classList.add('out');
     stage.hidden = false; $('#stage-marquee').classList.add('show');
+    if (!reduced && q.get('gl') !== '0') window.GLX?.mount(stage);
     let musicStarted = false;
     if (audio) musicStarted = startMusic();
     clock.start(startAt);
@@ -347,16 +348,44 @@
     if (code) g.appendChild(el('div', 'gen-code', esc(code)));
     return g;
   }
+  /* GSAP camera: a real dolly/pan per shot. Long shots breathe (slow push with a slight drift), short shots snap
+     (fast settle from a punch-in), portraits get a vertical tilt, wide plates a lateral pan. Never exceeds KB_MAX
+     so the picture is never shown above its own pixel density. */
+  const CAM_MOVES = [
+    { from: { scale: 1.16, xPercent: 1.2, yPercent: 0.8 }, to: { scale: 1.02, xPercent: 0, yPercent: 0 } },
+    { from: { scale: 1.03, xPercent: 0, yPercent: 0 }, to: { scale: 1.16, xPercent: -1.2, yPercent: -0.8 } },
+    { from: { scale: 1.16, xPercent: -1.8, yPercent: 1.2 }, to: { scale: 1.05, xPercent: 0.8, yPercent: -0.4 } },
+    { from: { scale: 1.04, xPercent: 0.8, yPercent: 0.4 }, to: { scale: 1.15, xPercent: -0.8, yPercent: 1.2 } },
+    { from: { scale: 1.16, xPercent: 0, yPercent: 2.4 }, to: { scale: 1.03, xPercent: 0, yPercent: 0 } },
+    { from: { scale: 1.02, rotation: -0.35 }, to: { scale: 1.14, rotation: 0.35 } }
+  ];
+  let camI = 0;
+  function camera(im, shot, def) {
+    const secs = Math.max(0.6, shot.beats * spb());
+    const mv = CAM_MOVES[camI++ % CAM_MOVES.length];
+    const portrait = def && def.h && def.w && def.h > def.w;
+    const from = { ...mv.from }, to = { ...mv.to };
+    if (portrait) { from.yPercent = (from.yPercent || 0) + 1.5; to.yPercent = (to.yPercent || 0) - 1.5; }
+    if (shot.beats <= 1) { // stab: land hard from a punch-in and hold — reads as a hit on the beat
+      gsap.fromTo(im, { scale: 1.16, xPercent: 0, yPercent: 0, rotation: 0 }, { scale: 1.06, duration: Math.min(0.5, secs), ease: 'expo.out', overwrite: true });
+      return;
+    }
+    gsap.fromTo(im, from, { ...to, duration: secs + 1.2, ease: shot.beats >= 6 ? 'sine.inOut' : 'power1.out', overwrite: true });
+  }
+
   function still(shot, slot, key) {
     const def = S.IMAGES[key];
     if (!def || imgState[key] === 'fail') { slot.dataset.kind = 'gen'; return gen(genWord(shot), `( ${shot.chapter.code} · ${key} )`); }
     const wrap = el('div', 'media' + (def.low ? ' lowres' : ''));
-    if (def.low) { const bd = el('img', 'backdrop'); bd.alt = ''; bd.src = def.src; bd.referrerPolicy = 'no-referrer'; wrap.appendChild(bd); }
-    const im = el('img', 'media img kb' + (kbI++ % 6)); im.alt = ''; im.decoding = 'async'; im.referrerPolicy = 'no-referrer'; im.src = def.src;
-    im.style.animationDuration = Math.max(1.2, shot.beats * spb() + 1.2) + 's';
+    if (def.low) { const bd = el('img', 'backdrop'); bd.alt = ''; bd.crossOrigin = 'anonymous'; bd.src = def.src; bd.referrerPolicy = 'no-referrer'; wrap.appendChild(bd); }
+    const useGsap = !!window.gsap && !reduced;
+    const im = el('img', 'media img' + (useGsap ? ' cam' : ' kb' + (kbI++ % 6))); im.alt = ''; im.decoding = 'async'; im.referrerPolicy = 'no-referrer'; im.crossOrigin = 'anonymous'; im.src = def.src;
+    im.addEventListener('load', () => { if (window.GLX?.supported && 'requestIdleCallback' in window) requestIdleCallback(() => GLX.prepare(im), { timeout: 400 }); else window.GLX?.prepare(im); }, { once: true });
+    if (!useGsap) im.style.animationDuration = Math.max(1.2, shot.beats * spb() + 1.2) + 's';
+    else slot._cam = () => camera(im, shot, def);
     im.onerror = () => { if (im.src !== def.srcLo) { def.src = def.srcLo; im.src = def.srcLo; return; } imgState[key] = 'fail'; wrap.replaceWith(gen(genWord(shot), `( ${shot.chapter.code} )`)); slot.dataset.kind = 'gen'; };
     wrap.appendChild(im);
-    const gr = el('img', 'ghost r'); gr.src = def.src; gr.alt = ''; gr.referrerPolicy = 'no-referrer'; const gb = el('img', 'ghost b'); gb.src = def.src; gb.alt = ''; gb.referrerPolicy = 'no-referrer';
+    const gr = el('img', 'rgb-ghost r'); gr.crossOrigin = 'anonymous'; gr.src = def.src; gr.alt = ''; gr.referrerPolicy = 'no-referrer'; const gb = el('img', 'rgb-ghost b'); gb.crossOrigin = 'anonymous'; gb.src = def.src; gb.alt = ''; gb.referrerPolicy = 'no-referrer';
     wrap.appendChild(gr); wrap.appendChild(gb); slot.dataset.kind = 'img'; return wrap;
   }
   function mediaFor(shot, slot) {
@@ -368,8 +397,8 @@
     if (local) {
       // local clip: real <video>, poster underneath, full resolution, no chrome
       const c = el('div', 'media clip local');
-      const poster = el('img', 'poster'); poster.alt = ''; poster.src = local.poster || S.IMAGES[m.fallback]?.src || ''; poster.onerror = () => poster.remove(); c.appendChild(poster);
-      const v = document.createElement('video'); v.muted = true; v.defaultMuted = true; v.playsInline = true; v.loop = true; v.preload = 'auto'; v.disablePictureInPicture = true; v.setAttribute('aria-hidden', 'true'); v.tabIndex = -1;
+      const poster = el('img', 'poster'); poster.alt = ''; poster.crossOrigin = 'anonymous'; poster.src = local.poster || S.IMAGES[m.fallback]?.src || ''; poster.onerror = () => poster.remove(); c.appendChild(poster);
+      const v = document.createElement('video'); v.crossOrigin = 'anonymous'; v.muted = true; v.defaultMuted = true; v.playsInline = true; v.loop = true; v.preload = 'auto'; v.disablePictureInPicture = true; v.setAttribute('aria-hidden', 'true'); v.tabIndex = -1;
       v.src = local.file; v.addEventListener('playing', () => v.classList.add('live'), { once: true });
       // if the file is missing or undecodable, fall back to the Ken Burns still so the beat is never empty
       v.addEventListener('error', () => { if (!c.isConnected) return; const s = still(shot, slot, m.fallback); c.replaceWith(s); slot.dataset.kind = 'img'; delete slot.dataset.video; }, { once: true });
@@ -384,7 +413,7 @@
     ifr.addEventListener('load', () => setTimeout(() => ifr.classList.add('live'), 1400));
     c.appendChild(ifr); frame.appendChild(c); slot.dataset.kind = 'clip'; return frame;
   }
-  function makeSlot(shot) { const slot = el('div', 'slot'); slot.dataset.shot = shot.index; slot.appendChild(mediaFor(shot, slot)); slots.appendChild(slot); const v = slot.querySelector('video'); if (v) v.play().catch(() => { /* will retry on show */ }); return slot; }
+  function makeSlot(shot) { const slot = el('div', 'slot warm'); slot.dataset.shot = shot.index; slot.appendChild(mediaFor(shot, slot)); slots.appendChild(slot); const v = slot.querySelector('video'); if (v) v.play().catch(() => { /* will retry on show */ }); return slot; }
   function prewarm(shot) { if (prewarmed.has(shot.index)) return; prewarmed.set(shot.index, makeSlot(shot)); }
 
   function stageFx(cls, ms) { if (reduced) return; stage.classList.remove(cls); void stage.offsetWidth; stage.classList.add(cls); setTimeout(() => stage.classList.remove(cls), ms); }
@@ -407,26 +436,71 @@
     if (!text || reduced) return;
     const w = el('div', 'word'); w.textContent = text;
     const variants = ['w-center', 'w-left', 'w-right', 'w-low', 'w-high'];
-    w.classList.add(variants[Math.floor(Math.random() * variants.length)]);
+    const variant = variants[Math.floor(Math.random() * variants.length)]; w.classList.add(variant);
     if (Math.random() < 0.3) w.classList.add('outline');
-    w.style.setProperty('--dur', Math.min(2.2, Math.max(0.6, beats * spb())) + 's');
+    const life = Math.min(2.2, Math.max(0.6, beats * spb()));
+    w.style.setProperty('--dur', life + 's');
     wordsEl.appendChild(w);
-    setTimeout(() => w.remove(), Math.min(2400, beats * spb() * 1000 + 300));
+    if (window.gsap) {
+      w.classList.add('gs');
+      const side = variant === 'w-left' ? -1 : variant === 'w-right' ? 1 : 0;
+      const tl = gsap.timeline({ onComplete: () => w.remove() });
+      tl.fromTo(w, { opacity: 0, scale: side ? 1 : 2.4, xPercent: side * -35 + (variant === 'w-center' || variant === 'w-low' || variant === 'w-high' ? -50 : 0), yPercent: -50, skewX: side * -18 },
+        { opacity: 1, scale: 1, xPercent: (variant === 'w-center' || variant === 'w-low' || variant === 'w-high' ? -50 : 0), skewX: 0, duration: 0.32, ease: 'expo.out' })
+        .to(w, { xPercent: '+=' + (side * 2), scale: side ? 1 : 1.05, duration: Math.max(0.2, life - 0.5), ease: 'none' })
+        .to(w, { opacity: 0, scale: side ? 1 : 1.1, duration: 0.22, ease: 'power2.in' });
+    } else setTimeout(() => w.remove(), Math.min(2400, beats * spb() * 1000 + 300));
+  }
+
+  /* GPU transitions (js/glx.js): which CSS transition names get a shader, how long, and any direction hints.
+     Anything not listed (cut, punch, drop, flash, invert, flicker) stays a hard CSS cut — those live on the beat. */
+  const GL_MAP = {
+    fade: ['liquid', 0.95], burn: ['luma', 0.9], iris: ['ripple', 0.75], spin: ['swirl', 0.6], glitch: ['mosaic', 0.42],
+    zoomblur: ['chroma', 0.5], zoomout: ['chroma', 0.55], zoomin: ['chroma', 0.55, { inverse: true }],
+    whip: ['warp', 0.45, { dir: [1, 0] }], whipL: ['warp', 0.45, { dir: [-1, 0] }], rise: ['warp', 0.5, { dir: [0, 1] }], fall: ['warp', 0.5, { dir: [0, -1] }],
+    wipe: ['warp', 0.5, { dir: [1, 0] }], slice: ['slices', 0.5], shutter: ['slices', 0.5]
+  };
+  const GL_KEEP_FX = new Set(['burn', 'glitch']); // shader + the stage-wide flash/ghosting still feel right together
+  const visibleMedia = (slot) => slot.querySelector('video.live') || slot.querySelector('img.img') || slot.querySelector('img.poster');
+  let glWhy = '';
+  function glCut(prev, slot, tr, shot) {
+    glWhy = '';
+    if (!prev || reduced || !window.GLX?.supported || q.get('gl') === '0') { glWhy = 'off'; return false; }
+    const spec = GL_MAP[tr]; if (!spec) { glWhy = 'css:' + tr; return false; }
+    if (prev.dataset.kind === 'gen' || slot.dataset.kind === 'gen') { glWhy = 'gen'; return false; }
+    if (prev.querySelector('.media.lowres') || slot.querySelector('.media.lowres')) { glWhy = 'lowres'; return false; } // contained images don't map onto the cover-fit shader
+    if (prev.querySelector('iframe.live')) { glWhy = 'iframe'; return false; } // a streamed clip is visible; its pixels aren't ours to sample
+    const from = visibleMedia(prev), to = visibleMedia(slot); if (!from || !to) { glWhy = 'nomedia'; return false; }
+    const dur = Math.min(spec[1], Math.max(0.3, shot.beats * spb() * 0.85));
+    const ease = window.gsap ? gsap.parseEase(spec[0] === 'liquid' || spec[0] === 'luma' ? 'sine.inOut' : 'power2.inOut') : undefined;
+    const ok = GLX.transition({ from: { el: from }, to: { el: to }, effect: spec[0], duration: dur, ease, ...(spec[2] || {}) });
+    if (!ok) glWhy = 'glx:' + (GLX.lastReason || '?');
+    return ok;
   }
 
   function showShot(i, hard) {
     const shot = shots[i]; if (!shot) return;
     const prev = curSlot; curShot = i;
     const slot = prewarmed.get(i) || makeSlot(shot); prewarmed.delete(i);
+    prewarmed.forEach((s, k) => { if (k <= i) { s.remove(); prewarmed.delete(k); } }); // skipped-over prewarms (seek, slow frame) must not pile up
     const tr = hard ? 'cut' : shot.tr;
-    slot.classList.add('on', 'tr-' + tr);
-    if (prev) { prev.classList.remove('on'); prev.classList.add('off', 'tr-' + tr); }
-    void slot.offsetWidth; slot.classList.add('go');
+    slot.classList.remove('warm'); // Ken Burns starts now
+    if (slot._cam) { slot._cam(); slot._cam = null; }
+    const gpu = !hard && glCut(prev, slot, tr, shot);
+    if (gpu) {
+      // the shader blends prev→slot on the overlay canvas; underneath, the new slot is simply there
+      slot.classList.add('on', 'tr-cut', 'gl');
+      if (prev) { prev.classList.remove('on'); prev.classList.add('off'); }
+    } else {
+      slot.classList.add('on', 'tr-' + tr);
+      if (prev) { prev.classList.remove('on'); prev.classList.add('off', 'tr-' + tr); }
+      void slot.offsetWidth; slot.classList.add('go');
+    }
     const vid = slot.querySelector('video'); if (vid) { if (vid.paused) vid.play().catch(() => { /* noop */ }); }
-    if (prev) prev.querySelectorAll('video').forEach((pv) => setTimeout(() => { pv.pause(); pv.removeAttribute('src'); pv.load(); }, 900));
-    if (!hard) { FX[tr]?.(); if (!titlecard) slamWord(shot.word, shot.beats); }
+    if (prev) prev.querySelectorAll('video').forEach((pv) => setTimeout(() => { pv.pause(); pv.removeAttribute('src'); pv.load(); }, 1200));
+    if (!hard) { if (!gpu || GL_KEEP_FX.has(tr)) FX[tr]?.(); if (!titlecard) slamWord(shot.word, shot.beats); }
     curSlot = slot;
-    if (prev) setTimeout(() => { prev.classList.add('gone'); setTimeout(() => prev.remove(), 600); }, 550);
+    if (prev) setTimeout(() => { prev.classList.add('gone'); setTimeout(() => prev.remove(), 600); }, gpu ? 1000 : 550);
     // caption + credit
     capEl.textContent = shot.caption || ''; capEl.classList.toggle('on', !!shot.caption);
     const key = keyOf(shot.media); const def = key && S.IMAGES[key];
@@ -434,6 +508,8 @@
     else creditEl.textContent = def && slot.dataset.kind === 'img' ? `${def.credit} · ${def.license}` : '';
     // prewarm upcoming clips (~5 s ahead) so iframes are already playing when they cut in
     for (let j = i + 1; j < shots.length && shots[j].start - shot.start < Math.ceil(5 / spb()) + 1; j++) { const mj = shots[j].media; if (typeof mj === 'object' && mj.yt) prewarm(shots[j]); }
+    // and the next two shots of any kind, so their pixels are decoded (and uploaded to the GPU) before the cut lands
+    for (let j = i + 1; j <= i + 2 && j < shots.length; j++) prewarm(shots[j]);
   }
 
   function showChapter(ci, hard) {
@@ -463,6 +539,16 @@
       h.classList.add('in'); h.querySelectorAll('b').forEach((b, i) => { b.style.transitionDelay = '0s'; b.style.transform = 'translateY(115%) rotate(6deg)'; b.style.opacity = '0'; b.dataset.beat = i; });
       requestAnimationFrame(() => tc.classList.add('in'));
       if (hard) h.querySelectorAll('b').forEach((b) => { b.style.transform = ''; b.style.opacity = ''; });
+    } else if (window.gsap && !reduced) {
+      tc.classList.add('in', 'gs'); h.classList.add('in');
+      const letters = h.querySelectorAll('b'); letters.forEach((b) => { b.style.transitionDelay = '0s'; b.style.transition = 'none'; });
+      const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
+      tl.fromTo(letters, { yPercent: 120, rotate: 8, opacity: 0 }, { yPercent: 0, rotate: 0, opacity: 1, duration: 1.1, stagger: { each: 0.045, from: 'start' } }, 0)
+        .fromTo(tc.querySelector('.tc-when'), { opacity: 0, y: 12, letterSpacing: '0.6em' }, { opacity: 1, y: 0, letterSpacing: '0.3em', duration: 0.9 }, 0.05)
+        .fromTo(tc.querySelector('.tc-line'), { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 1 }, 0.45)
+        .fromTo(tc.querySelector('.tc-rule'), { width: 0 }, { width: 120, duration: 1.1 }, 0.35);
+      const num = tc.querySelector('.tc-num'); if (num) tl.fromTo(num, { opacity: 0, scale: 1.25, xPercent: -50, yPercent: -50 }, { opacity: 1, scale: 1, duration: 2.4, ease: 'power2.out' }, 0);
+      tc._tl = tl;
     } else {
       requestAnimationFrame(() => requestAnimationFrame(() => { tc.classList.add('in'); h.classList.add('in'); }));
     }
@@ -471,6 +557,14 @@
   }
   function hideTitlecard() {
     const tc = titlecard; if (!tc) return; titlecard = null; tcOutBeat = Infinity;
+    if (tc._tl && window.gsap) {
+      tc._tl.kill(); tc.classList.add('out');
+      const letters = tc.querySelectorAll('.tc-title b');
+      gsap.timeline({ onComplete: () => tc.remove() })
+        .to(letters, { yPercent: -120, opacity: 0, duration: 0.55, ease: 'power3.in', stagger: { each: 0.02, from: 'end' } }, 0)
+        .to(tc.querySelectorAll('.tc-when, .tc-line, .tc-rule, .tc-num'), { opacity: 0, duration: 0.4 }, 0);
+      return;
+    }
     tc.classList.add('out'); tc.classList.remove('in'); tc.querySelector('.tc-title')?.classList.add('out');
     setTimeout(() => tc.remove(), 900);
   }
@@ -478,7 +572,11 @@
   function onBeat(b) {
     const inBar = ((b % 4) + 4) % 4;
     beatDots.forEach((d, i) => d.classList.toggle('on', i === inBar));
-    stage.classList.remove('beat', 'downbeat'); void stage.offsetWidth; stage.classList.add(inBar === 0 ? 'downbeat' : 'beat');
+    if (window.gsap && !reduced && curSlot) {
+      const energy = parseFloat(stage.style.getPropertyValue('--energy')) || 0.6;
+      const fr = curSlot.querySelector('.frame');
+      if (fr) { fr.classList.add('gs'); gsap.fromTo(fr, { scale: 1 + (inBar === 0 ? 0.05 : 0.018) * energy }, { scale: 1, duration: inBar === 0 ? 0.55 : 0.4, ease: 'expo.out', overwrite: true }); }
+    } else { stage.classList.remove('beat', 'downbeat'); void stage.offsetWidth; stage.classList.add(inBar === 0 ? 'downbeat' : 'beat'); }
     window.Cosmos?.pulse(inBar === 0 ? 1 : 0.45);
     if (inBar === 0 && !reduced) { hud.classList.remove('tick'); void hud.offsetWidth; hud.classList.add('tick'); }
     if (openLinesEl) { const rel = b - chapters[curChapter].start; openLinesEl.querySelectorAll('span').forEach((s) => { if (+s.dataset.beat <= rel) s.classList.add('on'); }); }
@@ -535,6 +633,7 @@
   function finish(natural) {
     if (finished) return; finished = true; cancelAnimationFrame(raf);
     if (natural) flash('full');
+    if (window.gsap && !reduced) { const st = $('#stage'); if (st) gsap.to(st, { scale: 1.08, opacity: 0, duration: 1.2, ease: 'power2.inOut' }); }
     film.classList.add('done'); document.body.classList.remove('filming');
     settleMusic();
     const soundOn = musicActive() && !music.muted;
@@ -568,6 +667,6 @@
   }
   bpmEl.textContent = T.bpm.toFixed(1) + ' BPM';
 
-  window.Film = { musicActive, toggleMusic, seek: (s) => clock.seek(s), get timing() { return T; }, chapters, shots, images: S.IMAGES, local: LOCAL, get music() { return music; } };
+  window.Film = { get glWhy() { return glWhy; }, musicActive, toggleMusic, seek: (s) => clock.seek(s), get timing() { return T; }, chapters, shots, images: S.IMAGES, local: LOCAL, get music() { return music; } };
   preload();
 })();

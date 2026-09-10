@@ -49,7 +49,7 @@
     if (entered) return; entered = true;
     document.body.classList.remove('locked');
     nav.classList.add('show');
-    setTimeout(() => heroTitle.classList.add('in'), 300);
+    if (!window.gsap) setTimeout(() => heroTitle.classList.add('in'), 300); // with GSAP, motion.js choreographs the hero
     if (opts.music) { soundBtn.setAttribute('aria-pressed', 'true'); soundBtn.title = 'Soundtrack'; soundBtn.setAttribute('aria-label', 'Toggle soundtrack'); }
     else if (opts.ambient) soundBtn.setAttribute('aria-pressed', 'true');
     else if (withSound) { Ambient.enable(); soundBtn.setAttribute('aria-pressed', 'true'); }
@@ -233,7 +233,7 @@
     const wrap = $('#eras'), navList = $('#era-nav');
     D.eras.forEach((era, i) => {
       const li = el('li'); const b = el('button', null, `<small>${esc(era.label)}</small>${esc(era.title)}`);
-      b.addEventListener('click', () => document.getElementById('era-' + era.id).scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' }));
+      b.addEventListener('click', () => { const t = document.getElementById('era-' + era.id); if (window.Motion?.lenis) window.Motion.scrollTo(t, { offset: -(window.innerHeight - t.offsetHeight) / 2 }); else t.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' }); });
       li.appendChild(b); navList.appendChild(li);
 
       const sec = el('article', 'era'); sec.id = 'era-' + era.id; sec.dataset.scene = era.scene; sec.dataset.i = i;

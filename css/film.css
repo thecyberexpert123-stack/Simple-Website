@@ -46,7 +46,7 @@ body.filming main, body.filming footer, body.filming #nav, body.filming #progres
 .fbtn.primary:hover { border-color: var(--f-gold); }
 .fbtn[disabled] { opacity: 0.45; cursor: progress; }
 .fbtn[disabled]::before { display: none; }
-.fbtn.ghost { min-width: 0; flex-direction: row; align-items: center; gap: 12px; padding: 10px 14px; background: rgba(5, 5, 7, 0.4); backdrop-filter: blur(6px); }
+.fbtn.ghost { min-width: 0; flex-direction: row; align-items: center; gap: 12px; padding: 10px 14px; background: rgba(5, 5, 7, 0.55); }
 .fbtn.ghost .fbtn-label { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 700; }
 
 /* ---------------------------------------------------------------- */
@@ -114,6 +114,11 @@ body.filming main, body.filming footer, body.filming #nav, body.filming #progres
 .stage { position: absolute; inset: 0; z-index: 10; overflow: hidden; background: transparent; }
 .stage[hidden] { display: none; }
 .slot { position: absolute; inset: 0; opacity: 0; }
+.slot.warm .media.img { animation-play-state: paused; } /* prewarmed: decoded and uploaded, but the move waits for the cut */
+/* GPU transition canvas (js/glx.js): sits above the slots, below vignette/words/HUD; only painted mid-cut */
+.glx { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; opacity: 0; }
+.glx.on { opacity: 1; }
+.slot.on.gl { opacity: 1; }
 .frame { position: absolute; inset: 0; transform: scale(1); transition: transform 0.55s var(--f-out); }
 .stage { --energy: 0.6; }
 .stage.beat .slot.on .frame { transform: scale(calc(1 + 0.018 * var(--energy))); transition-duration: 0.05s; }
@@ -123,6 +128,9 @@ body.filming main, body.filming footer, body.filming #nav, body.filming #progres
 .media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .media.img { animation-fill-mode: forwards; animation-timing-function: linear; }
 .media.img { image-rendering: auto; }
+.media.img.cam { animation: none; transform-origin: 50% 50%; } /* camera driven by GSAP (film.js camera()) */
+.word.gs { animation: none; transform-origin: 50% 50%; }
+.frame.gs { transition: none; }
 .media.kb0 { animation-name: kb0; } .media.kb1 { animation-name: kb1; } .media.kb2 { animation-name: kb2; } .media.kb3 { animation-name: kb3; } .media.kb4 { animation-name: kb4; } .media.kb5 { animation-name: kb5; }
 @keyframes kb0 { from { transform: scale(1.14) translate(1.5%, 1%); } to { transform: scale(1.02) translate(0, 0); } }
 @keyframes kb1 { from { transform: scale(1.03) translate(0, 0); } to { transform: scale(1.15) translate(-1.5%, -1%); } }
@@ -134,9 +142,9 @@ body.filming main, body.filming footer, body.filming #nav, body.filming #progres
 .media.lowres .backdrop { position: absolute; inset: -8%; width: 116%; height: 116%; object-fit: cover; filter: blur(28px) brightness(0.45) saturate(1.2); transform: scale(1.05); }
 .media.lowres .img { object-fit: contain; padding: 4vh 0; box-sizing: border-box; filter: drop-shadow(0 20px 60px rgba(0, 0, 0, 0.6)); }
 @media (max-width: 700px) { .media.lowres .img { padding: 12vh 0; } }
-.ghost { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; mix-blend-mode: screen; pointer-events: none; }
-.ghost.r { filter: sepia(1) saturate(8) hue-rotate(-45deg) contrast(1.2); }
-.ghost.b { filter: sepia(1) saturate(8) hue-rotate(160deg) contrast(1.2); }
+.rgb-ghost { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; mix-blend-mode: screen; pointer-events: none; }
+.rgb-ghost.r { filter: sepia(1) saturate(8) hue-rotate(-45deg) contrast(1.2); }
+.rgb-ghost.b { filter: sepia(1) saturate(8) hue-rotate(160deg) contrast(1.2); }
 .media.clip { overflow: hidden; background: #000; }
 .media.clip .poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .media.clip iframe { position: absolute; left: 50%; top: 50%; width: 177.78vh; min-width: 100%; height: 56.25vw; min-height: 100%; transform: translate(-50%, -50%) scale(1.18); border: 0; pointer-events: none; opacity: 0; transition: opacity 0.6s; }
@@ -234,9 +242,9 @@ body.filming main, body.filming footer, body.filming #nav, body.filming #progres
 
 /* ---------- stage-wide effects ---------- */
 .stage.fx-glitch .slot.on .frame { animation: glitchClip 0.42s steps(1) both; }
-.stage.fx-glitch .slot.on .ghost { opacity: 0.9; }
-.stage.fx-glitch .slot.on .ghost.r { animation: ghostR 0.42s steps(1) both; }
-.stage.fx-glitch .slot.on .ghost.b { animation: ghostB 0.42s steps(1) both; }
+.stage.fx-glitch .slot.on .rgb-ghost { opacity: 0.9; }
+.stage.fx-glitch .slot.on .rgb-ghost.r { animation: ghostR 0.42s steps(1) both; }
+.stage.fx-glitch .slot.on .rgb-ghost.b { animation: ghostB 0.42s steps(1) both; }
 @keyframes glitchClip {
   0% { clip-path: inset(10% 0 60% 0); transform: translateX(-2%) scale(1.03); }
   15% { clip-path: inset(50% 0 5% 0); transform: translateX(2%) scale(1.03); }
@@ -269,6 +277,7 @@ body.filming main, body.filming footer, body.filming #nav, body.filming #progres
 .titlecard { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; padding: 0 24px; pointer-events: none; z-index: 5; }
 .titlecard::before { content: ''; position: absolute; inset: 0; background: rgba(5, 5, 7, 0.3); opacity: 0; transition: opacity 0.6s; }
 .titlecard.in::before { opacity: 1; }
+.titlecard.gs .tc-when, .titlecard.gs .tc-line, .titlecard.gs .tc-rule, .titlecard.gs .tc-num, .titlecard.gs .split > span > b { transition: none; }
 .titlecard.in.title::before { opacity: 0.5; }
 .tc-when { position: relative; color: var(--f-sig); opacity: 0; transform: translateY(10px); transition: opacity 0.5s, transform 0.7s var(--f-out); }
 .tc-title { position: relative; font-family: var(--f-display); font-weight: 800; font-size: clamp(40px, 11vw, 168px); line-height: 0.9; letter-spacing: -0.045em; margin: 14px 0 18px; text-transform: uppercase; }
@@ -362,6 +371,6 @@ body.filming main, body.filming footer, body.filming #nav, body.filming #progres
 @media (prefers-reduced-motion: reduce) {
   .media.img { animation: none !important; }
   .marquee-track { animation-duration: 120s; }
-  .stage.fx-glitch .slot.on .frame, .stage.fx-shake, .stage.fx-invert, .stage.fx-strobe .stage-vignette, .ghost { animation: none !important; }
+  .stage.fx-glitch .slot.on .frame, .stage.fx-shake, .stage.fx-invert, .stage.fx-strobe .stage-vignette, .rgb-ghost { animation: none !important; }
   .fx-flash.go { animation-duration: 0.9s; }
 }

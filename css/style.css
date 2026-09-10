@@ -474,3 +474,44 @@ footer { position: relative; z-index: 3; padding: 60px clamp(20px, 5vw, 64px) 40
   .hero-title span { opacity: 1; transform: none; }
   #grain { display: none; }
 }
+
+/* ---------------------------------------------------------------- */
+/* Motion layer (js/motion.js): Lenis + GSAP                        */
+/* ---------------------------------------------------------------- */
+html.lenis-on, html.lenis-on body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+/* when GSAP drives a reveal, neutralise the CSS transition so the two never fight */
+.reveal.gs { transition: none; }
+.has-motion .hero-title.gs span { transition: none; }
+.has-motion .h2.in, .has-motion .finale-title.in, .has-motion .lede.in, .has-motion .finale-text.in, .has-motion .eyebrow.in { opacity: 1; transform: none; transition: none; }
+/* SplitText masks */
+.ln { overflow: hidden; }
+.wd { display: inline-block; will-change: transform; }
+.head-rule { display: block; width: min(160px, 24vw); height: 1px; margin-top: 26px; background: linear-gradient(90deg, var(--gold), transparent); }
+.nav-counter { font-size: 10px; letter-spacing: 0.3em; color: var(--ink-faint); font-variant-numeric: tabular-nums; pointer-events: none; margin-right: 10px; display: inline-block; }
+.nav-counter.tick { animation: navTick 0.5s var(--ease); }
+@keyframes navTick { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: none; } }
+@media (max-width: 900px) { .nav-counter { display: none; } }
+/* tilt targets: give the transform a perspective + a moving highlight */
+.card, .video-tile, .num, .era-card, .mark { transform-style: preserve-3d; }
+.card::after, .num::after, .video-tile::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 3; border-radius: inherit; opacity: 0; transition: opacity 0.5s;
+  background: radial-gradient(circle at calc(var(--mx, 0.5) * 100%) calc(var(--my, 0.5) * 100%), rgba(255, 255, 255, 0.12), transparent 42%);
+}
+.card:hover::after, .num:hover::after, .video-tile:hover::after { opacity: 1; }
+/* cursor lens */
+.lens { position: fixed; left: 0; top: 0; z-index: 200; pointer-events: none; opacity: 0; transition: opacity 0.4s; mix-blend-mode: difference; }
+html.lens-on .lens { opacity: 1; }
+html.lens-on { cursor: none; }
+html.lens-on a, html.lens-on button, html.lens-on input, html.lens-on [role=button] { cursor: none; }
+.lens i, .lens b { position: absolute; left: 0; top: 0; border-radius: 50%; display: block; }
+.lens i { width: 6px; height: 6px; margin: -3px 0 0 -3px; background: #fff; }
+.lens b { width: 36px; height: 36px; margin: -18px 0 0 -18px; border: 1px solid rgba(255, 255, 255, 0.85); transition: width 0.35s var(--ease), height 0.35s var(--ease), margin 0.35s var(--ease), border-color 0.3s, background 0.3s; }
+.lens.hot b { width: 56px; height: 56px; margin: -28px 0 0 -28px; background: rgba(255, 255, 255, 0.12); }
+.lens.drag b { width: 64px; height: 30px; margin: -15px 0 0 -32px; border-radius: 15px; }
+.lens.down b { width: 24px; height: 24px; margin: -12px 0 0 -12px; }
+.lens.hide { opacity: 0; }
+body.filming .lens, body.locked .lens { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .lens { display: none; } html.lens-on { cursor: auto; } }

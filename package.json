@@ -1,0 +1,26 @@
+{
+  "name": "humanity-monument",
+  "version": "1.0.0",
+  "description": "HUMANITY — a cinematic, beat-synced monument to human achievement. Static site; Node is only used for local tooling.",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "dev": "node tools/serve.js 8080",
+    "start": "node tools/serve.js 8080",
+    "serve": "node tools/serve.js",
+    "check": "node tools/check.js",
+    "test": "node tools/check.js",
+    "media": "node tools/fetch-media.js",
+    "media:audio": "node tools/fetch-media.js --audio",
+    "media:clips": "node tools/fetch-media.js --clips",
+    "media:stills": "node tools/fetch-media.js --stills"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thecyberexpert123-stack/Simple-Website.git"
+  }
+}
