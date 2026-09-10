@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 /* =====================================================================
    HUMANITY — tools/fetch-media.js
-   Pulls the film's media into the repo so nothing streams from YouTube
-   or Wikimedia at runtime:
+   Pulls the film's media into the repo so nothing streams at runtime:
 
      media/audio/soundtrack.m4a        the track (audio only, 160 kbps AAC)
      media/clips/<key>.mp4             trimmed, muted, 1080p H.264 clips
@@ -10,8 +9,10 @@
      media/stills/<key>.jpg|png        stills at up to 3840 px wide
      media/manifest.json               what was fetched (read by film.js)
 
-   Requirements: node ≥ 18, yt-dlp, ffmpeg  (brew install yt-dlp ffmpeg
-   or  pip install yt-dlp  +  apt install ffmpeg).
+   Requirements: node ≥ 18 and ffmpeg for clips + stills; yt-dlp as well
+   for the soundtrack (winget install ffmpeg; pip install yt-dlp).
+   Clips come straight from Wikimedia Commons (public domain / CC), so
+   only the soundtrack still needs yt-dlp.
 
    Usage:
      node tools/fetch-media.js              # everything
@@ -23,7 +24,8 @@
      node tools/fetch-media.js --check      # just show which tools were found
      node tools/fetch-media.js --ffmpeg /path/to/ffmpeg --yt-dlp /path/to/yt-dlp   # explicit paths
 
-   The film works without any of this (it falls back to streaming), so
+   The film works without any of this (clips stream from Commons; the
+   soundtrack falls back to the ambient score if the file is missing), so
    run it whenever you like and commit the media/ folder — or keep it out
    of Git and host it elsewhere; see README "Local media".
    ===================================================================== */
@@ -163,26 +165,27 @@ function fetchAudio() {
   save();
 }
 
-/* ---------- clips ---------- */
-function fetchClips() {
-  need('yt-dlp', 'Install: pip install yt-dlp'); need('ffmpeg', 'Install: apt install ffmpeg  (or brew install ffmpeg / winget install ffmpeg)');
+/* ---------- clips ----------
+   Each clip is a public-domain / CC file on Wikimedia Commons (see CLIPS in js/film-script.js). We download
+   the best transcode ≤1080p straight from upload.wikimedia.org — no yt-dlp involved — then trim the window
+   the film uses and re-encode it to a lean H.264 .mp4 that every browser (including Safari) plays instantly. */
+async function fetchClips() {
+  need('ffmpeg', 'Install: winget install ffmpeg  (or brew install ffmpeg / apt install ffmpeg)');
   const dir = path.join(MEDIA, 'clips'); fs.mkdirSync(dir, { recursive: true });
   const tmp = path.join(MEDIA, '.tmp'); fs.mkdirSync(tmp, { recursive: true });
   for (const [key, c] of Object.entries(S.CLIPS)) {
     if (only.length && !only.includes(key)) continue;
-    if (c.live) { log(`↷ ${key}: live stream, skipped (streams at runtime, still fallback otherwise)`); continue; }
     const out = path.join(dir, `${key}.mp4`); const poster = path.join(dir, `${key}.jpg`);
-    log(`▶ ${key} ${c.yt} [${c.start}s +${c.len}s] → ${path.relative(ROOT, out)}`);
-    const src = path.join(tmp, `${key}.src.mp4`);
-    // best ≤1080p mp4 video, no audio needed — download only the section we use (+2 s slack for keyframes)
-    tool('yt-dlp', ['-f', 'bestvideo[height<=1080][ext=mp4]/bestvideo[height<=1080]/best[height<=1080]', '--ffmpeg-location', ffLoc(), '--download-sections', `*${Math.max(0, c.start - 2)}-${c.start + c.len + 2}`, '--force-keyframes-at-cuts', '-o', src, '--force-overwrites', `https://www.youtube.com/watch?v=${c.yt}`], { stdio: 'inherit' });
-    // trim exactly, drop audio, re-encode to a lean 1080p H.264 that every browser plays; fast start for instant playback
-    const ss = fs.existsSync(src) ? 2 : c.start;
-    tool('ffmpeg', ['-y', '-ss', String(ss), '-i', src, '-t', String(c.len), '-an', '-vf', 'scale=-2:min(1080\\,ih)', '-c:v', 'libx264', '-preset', 'slow', '-crf', '20', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out], { stdio: 'inherit' });
+    const url = S.clipUrl(c, 1080);
+    log(`▶ ${key} [${c.start}s +${c.len}s] ← ${decodeURIComponent(url.split('/').pop())}`);
+    const src = path.join(tmp, `${key}.src${path.extname(url.split('?')[0]) || '.webm'}`);
+    try { await download(url, src); } catch (e) { log(`  ✗ download failed (${e.message}) — the film will stream this clip instead`); continue; }
+    // trim exactly, drop audio, re-encode to ≤1080p H.264; fast start so the first frame is instant
+    tool('ffmpeg', ['-y', '-ss', String(c.start), '-i', src, '-t', String(c.len), '-an', '-vf', 'scale=-2:min(1080\\,ih)', '-c:v', 'libx264', '-preset', 'slow', '-crf', '20', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out], { stdio: 'inherit' });
     tool('ffmpeg', ['-y', '-i', out, '-frames:v', '1', '-q:v', '2', poster], { stdio: 'ignore' });
     const dur = probeDuration(out);
     const wh = probeSize(out);
-    manifest.clips[key] = { file: `media/clips/${key}.mp4`, poster: `media/clips/${key}.jpg`, duration: dur, size: wh, source: `https://www.youtube.com/watch?v=${c.yt}&t=${c.start}`, title: c.title };
+    manifest.clips[key] = { file: `media/clips/${key}.mp4`, poster: `media/clips/${key}.jpg`, duration: dur, size: wh, source: `https://commons.wikimedia.org/wiki/File:${c.file}`, start: c.start, title: c.title, license: c.license };
     save(); fs.rmSync(src, { force: true });
   }
   fs.rmSync(tmp, { recursive: true, force: true });
@@ -216,7 +219,7 @@ async function fetchStills() {
   log('tools:'); report();
   if (flag('--check')) return;
   if (doAll || flag('--audio')) fetchAudio();
-  if (doAll || flag('--clips')) fetchClips();
+  if (doAll || flag('--clips')) await fetchClips();
   if (doAll || flag('--stills')) await fetchStills();
   save();
   const size = (dir) => { let n = 0; if (!fs.existsSync(dir)) return 0; for (const f of fs.readdirSync(dir)) { const p = path.join(dir, f); const st = fs.statSync(p); n += st.isDirectory() ? size(p) : st.size; } return n; };

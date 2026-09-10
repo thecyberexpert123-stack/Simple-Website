@@ -196,9 +196,18 @@
   function videoTile(v, cls = '') {
     const b = el('button', 'video-tile ' + cls);
     b.type = 'button'; b.setAttribute('aria-label', 'Play video: ' + v.title);
-    b.innerHTML = `<img src="${ytThumb(v.id)}" alt="" loading="lazy"><span class="play">${PLAY_SVG}</span><span class="cap"><b>${esc(v.title)}</b>${esc(v.source)}</span>`;
+    b.innerHTML = `<img src="${posterFor(v)}" alt="" loading="lazy"><span class="play">${PLAY_SVG}</span><span class="cap"><b>${esc(v.title)}</b>${esc(v.source)}</span>`;
     b.addEventListener('click', () => openModal({ title: v.title, sub: v.source, video: v }));
     return b;
+  }
+  /* Video sources. Where an archival clip exists on Wikimedia Commons we play it ourselves; anything else is an
+     honest link out to the publisher — there is no embedded YouTube player anywhere on the site. */
+  const clipFor = (v) => (v.clip && window.FILM_SCRIPT?.CLIPS?.[v.clip]) || null;
+  const posterFor = (v) => { const c = clipFor(v); if (c && window.FILM_SCRIPT) { const st = window.FILM_SCRIPT.IMAGES[c.fallback]; return window.FILM_LOCAL?.clips?.[v.clip]?.poster || (st ? window.FILM_SCRIPT.urlFor(st, 1600) : window.FILM_SCRIPT.clipPoster(c, 1280)); } return v.id ? ytThumb(v.id) : ''; };
+  function extCard(v) {
+    const a = el('a', 'ext-card'); a.href = `https://www.youtube.com/watch?v=${v.id}`; a.target = '_blank'; a.rel = 'noopener';
+    a.innerHTML = `<img src="${ytThumb(v.id)}" alt=""><span class="play">${PLAY_SVG}</span><span class="cap"><b>${esc(v.title)}</b>${esc(v.source)} — opens on YouTube ↗</span>`;
+    return a;
   }
   function openModal(item, accent) {
     lastFocus = document.activeElement;
@@ -211,10 +220,21 @@
     const facts = $('#modal-facts'); facts.innerHTML = ''; (item.facts || []).forEach((f) => facts.appendChild(el('div', null, esc(f))));
     const src = $('#modal-src');
     if (item.video) {
-      mMedia.hidden = false;
-      mMedia.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${item.video.id}?autoplay=1&rel=0&modestbranding=1&color=white" title="${esc(item.video.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
-      src.innerHTML = `Footage: <a href="https://www.youtube.com/watch?v=${item.video.id}" target="_blank" rel="noopener">${esc(item.video.title)}</a> — ${esc(item.video.source)}`;
-      Ambient.duck(true);
+      mMedia.hidden = false; mMedia.innerHTML = '';
+      const v = item.video; const clip = clipFor(v);
+      if (clip) {
+        // native player: the full public-domain / CC file from Wikimedia Commons, no third-party embed
+        const vid = document.createElement('video'); vid.controls = true; vid.autoplay = true; vid.playsInline = true; vid.preload = 'metadata'; vid.setAttribute('title', v.title);
+        vid.poster = posterFor(v); const S = window.FILM_SCRIPT; const local = window.FILM_LOCAL?.clips?.[v.clip];
+        vid.src = S.clipUrl(clip, Math.min(1080, Math.round(innerHeight * Math.min(2, devicePixelRatio || 1)) > 900 ? 1080 : 480));
+        vid.addEventListener('error', () => { if (local && vid.src !== local.file) { vid.src = local.file; vid.load(); return; } mMedia.innerHTML = ''; mMedia.appendChild(extCard(v)); }, { once: true });
+        vid.addEventListener('play', () => Ambient.duck(true)); vid.addEventListener('pause', () => Ambient.duck(false));
+        mMedia.appendChild(vid);
+        src.innerHTML = `Footage: <a href="https://commons.wikimedia.org/wiki/File:${encodeURIComponent(clip.file)}" target="_blank" rel="noopener">${esc(clip.title)}</a> · ${esc(clip.license)} · Wikimedia Commons` + (v.id ? ` &nbsp;·&nbsp; <a href="https://www.youtube.com/watch?v=${v.id}" target="_blank" rel="noopener">original broadcast ↗</a>` : '');
+      } else {
+        mMedia.appendChild(extCard(v));
+        src.innerHTML = `Footage: <a href="https://www.youtube.com/watch?v=${v.id}" target="_blank" rel="noopener">${esc(v.title)}</a> — ${esc(v.source)} (opens on YouTube)`;
+      }
     } else { mMedia.hidden = true; mMedia.innerHTML = ''; src.textContent = ''; }
     $('.modal-close').focus();
   }
@@ -262,7 +282,7 @@
       cards.innerHTML = '';
       g.items.forEach((it, i) => {
         const c = el('button', 'card'); c.type = 'button'; c.style.animationDelay = (i * 0.06) + 's';
-        const art = it.video ? `<div class="art"><img src="${ytThumb(it.video.id)}" alt="" loading="lazy"></div>` : `<div class="art gen"></div>`;
+        const art = it.video ? `<div class="art"><img src="${posterFor(it.video)}" alt="" loading="lazy"></div>` : `<div class="art gen"></div>`;
         const year = it.year < 0 ? `c. ${fmt(-it.year)} BCE` : it.year;
         c.innerHTML = `${art}${it.video ? `<span class="has-video" aria-hidden="true">${PLAY_SVG}</span>` : ''}<span class="year">${year}</span><h4>${esc(it.title)}</h4><p>${esc(it.sub)}</p><span class="more">${it.video ? 'Read & watch' : 'Read'}</span>`;
         c.addEventListener('click', () => openModal(it, g.accent));

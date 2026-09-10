@@ -1,13 +1,13 @@
 /* =====================================================================
    HUMANITY — film.js
-   The editor. Takes FILM_SCRIPT (beats) + a clock (YouTube stream time
+   The editor. Takes FILM_SCRIPT (beats) + a clock (the soundtrack's audio time
    or a local timer) and cuts the picture live in the browser.
 
    Public API (window.Film):
      musicActive()   → true when the soundtrack is running
      toggleMusic()   → mute/unmute, returns "on"
      seek(sec)       → debug jump
-   Query params: ?bpm= ?offset= ?t= ?speed= ?debug=1 ?nofilm=1
+   Query params: ?bpm= ?offset= ?t= ?speed= ?debug=1 ?nofilm=1 ?gl=0
    Keys (debug): T tap tempo · O mark downbeat · ←/→ offset · ↑/↓ bpm · [ ] seek
    ===================================================================== */
 (function () {
@@ -81,7 +81,7 @@
 
   /* Local media (media/manifest.json, produced by tools/fetch-media.js). When present, stills, clips and the
      soundtrack are served from the repo itself — no YouTube / Wikimedia at runtime. Missing entries fall back. */
-  const LOCAL = { audio: null, clips: {}, stills: {} };
+  const LOCAL = { audio: null, clips: {}, stills: {} }; window.FILM_LOCAL = LOCAL; // app.js reads it for the modal player
   async function loadManifest() {
     try {
       const r = await fetch('media/manifest.json', { cache: 'no-cache' }); if (!r.ok) return;
@@ -112,16 +112,16 @@
   const allKeys = Object.keys(S.IMAGES);
 
   /* ---------------------------------------------------------------- */
-  /* Music (YouTube IFrame API) with graceful fallback                */
+  /* Music: a plain <audio> element, ambient fallback                */
   /* ---------------------------------------------------------------- */
   const startAt = Math.max(0, parseFloat(q.get('t')) || 0);
-  const music = { mode: 'none', api: false, player: null, audio: null, ready: false, playing: false, failed: false, muted: false, everPlayed: false, wantStart: false };
+  const music = { mode: 'none', audio: null, ready: false, playing: false, failed: false, muted: false, everPlayed: false, wantStart: false };
   const NOW_HTML = nowTitle.innerHTML;
   function showAudioWarn(msg) { nowPlaying.classList.add('show', 'warn'); nowTitle.textContent = msg; }
   function onPlaying() {
     if (!music.everPlayed && startAt > 0) seekMusic(startAt);
     music.playing = true; music.everPlayed = true; clock.syncHard();
-    nowPlaying.classList.add('show'); nowPlaying.classList.remove('warn'); nowTitle.innerHTML = NOW_HTML + (music.mode === 'local' ? ' <i class="mono">· local</i>' : '');
+    nowPlaying.classList.add('show'); nowPlaying.classList.remove('warn'); nowTitle.innerHTML = NOW_HTML + (LOCAL.audio?.streamed ? '' : ' <i class="mono">· local</i>');
     if (window.Ambient?.enabled) window.Ambient.disable();
   }
 
@@ -131,60 +131,28 @@
     a.addEventListener('playing', onPlaying);
     a.addEventListener('pause', () => { music.playing = false; });
     a.addEventListener('waiting', () => { music.playing = false; });
-    a.addEventListener('error', () => { music.audio = null; music.mode = 'none'; if (music.api) { music.mode = 'yt'; createPlayer(); if (music.wantStart) startMusic(); } else { music.failed = true; } });
+    a.addEventListener('error', () => { music.audio = null; music.mode = 'none'; music.failed = true; music.playing = false; if (LOCAL.audio?.streamed) LOCAL.audio = null; if (started && withAudio) { showAudioWarn('soundtrack not bundled — playing the ambient score (npm run media:audio)'); window.Ambient?.enable(); } });
     a.addEventListener('canplaythrough', () => { music.ready = true; if (music.wantStart && !music.everPlayed) startMusic(); }, { once: true });
     music.audio = a; music.mode = 'local'; a.load();
   }
 
-  /* -- YouTube IFrame API -- */
-  function loadYT() {
-    return new Promise((res) => {
-      if (window.YT && window.YT.Player) { music.api = true; return res(true); }
-      const prev = window.onYouTubeIframeAPIReady;
-      window.onYouTubeIframeAPIReady = () => { prev?.(); music.api = true; res(true); };
-      const s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; s.async = true;
-      s.onerror = () => res(false);
-      document.head.appendChild(s);
-    });
-  }
-  function createPlayer() {
-    if (!music.api || music.player) return;
-    try {
-      music.player = new YT.Player('yt-player', {
-        videoId: T.videoId, width: 320, height: 180, host: 'https://www.youtube.com',
-        playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, playsinline: 1, rel: 0, iv_load_policy: 3, modestbranding: 1, origin: location.origin, enablejsapi: 1 },
-        events: {
-          onReady: () => { music.ready = true; if (music.wantStart) startMusic(); },
-          onStateChange: (e) => {
-            const st = e.data;
-            if (st === YT.PlayerState.PLAYING) onPlaying();
-            else if (st === YT.PlayerState.PAUSED) { music.playing = false; if (!finished && !music.muted && music.everPlayed) { try { music.player.playVideo(); } catch (err) { /* noop */ } } }
-            else if (st === YT.PlayerState.BUFFERING || st === YT.PlayerState.CUED) music.playing = false;
-            else if (st === YT.PlayerState.ENDED) { music.playing = false; try { music.player.seekTo(0, true); music.player.playVideo(); } catch (err) { /* noop */ } }
-          },
-          onError: () => { music.failed = true; music.playing = false; showAudioWarn('soundtrack unavailable (video blocked here) — playing ambient score'); if (withAudio) window.Ambient?.enable(); }
-        }
-      });
-      music.mode = 'yt';
-    } catch (e) { music.failed = true; }
-  }
-
+  /* -- No YouTube player. The soundtrack is an <audio> element: the bundled file when media/ has it,
+        otherwise the same path is tried on the host (GitHub Pages serves it with Range support). If neither
+        exists the film runs on its own clock with the generative ambient score and says so. -- */
+  function createStreamAudio() { LOCAL.audio = { file: 'media/audio/soundtrack.m4a', streamed: true }; createLocalAudio(); }
   /* -- common controls -- */
   function rawPlay() {
     if (music.mode === 'local' && music.audio) { music.audio.muted = false; music.audio.volume = 1; return music.audio.play().catch(() => { /* autoplay policy — retried on gesture */ }); }
-    if (music.mode === 'yt' && music.player) { try { music.player.unMute(); music.player.setVolume(100); music.player.playVideo(); } catch (e) { /* noop */ } }
     return Promise.resolve();
   }
   function seekMusic(sec) {
     if (music.mode === 'local' && music.audio) { try { music.audio.currentTime = sec; } catch (e) { /* noop */ } }
-    else if (music.mode === 'yt' && music.player) { try { music.player.seekTo(sec, true); } catch (e) { /* noop */ } }
   }
   function currentTime() {
     if (music.mode === 'local' && music.audio) return music.audio.currentTime;
-    if (music.mode === 'yt' && music.player) { try { return music.player.getCurrentTime(); } catch (e) { return -1; } }
     return -1;
   }
-  function setVolume(v) { if (music.mode === 'local' && music.audio) music.audio.volume = v / 100; else if (music.player) { try { music.player.setVolume(v); } catch (e) { /* noop */ } } }
+  function setVolume(v) { if (music.mode === 'local' && music.audio) music.audio.volume = v / 100; }
   function startMusic() {
     if (music.failed) return false;
     music.wantStart = true;
@@ -205,7 +173,6 @@
     if (!musicActive()) return false;
     music.muted = !music.muted;
     if (music.mode === 'local' && music.audio) { music.audio.muted = music.muted; if (!music.muted) music.audio.play().catch(() => { /* noop */ }); }
-    else if (music.player) { try { if (music.muted) music.player.mute(); else { music.player.unMute(); music.player.playVideo(); } } catch (e) { /* noop */ } }
     return !music.muted;
   }
   function settleMusic() { // after the film: keep the track as the site's soundtrack, quieter
@@ -214,7 +181,7 @@
   }
 
   /* ---------------------------------------------------------------- */
-  /* Clock — stream time when the player runs, local timer otherwise   */
+  /* Clock — the audio element's time when the track runs, timer otherwise */
   /* ---------------------------------------------------------------- */
   const clock = {
     t0: 0, base: 0, speed: parseFloat(q.get('speed')) || 1, running: false, source: 'timer', lastSample: -1, lastSampleAt: 0,
@@ -225,7 +192,7 @@
       if (music.playing && !music.failed) {
         const s = currentTime();
         if (s >= 0) {
-          this.source = 'stream';
+          this.source = 'audio';
           if (s !== this.lastSample) {
             this.lastSample = s; this.lastSampleAt = performance.now();
             const d = s - local;
@@ -273,16 +240,10 @@
     const bump = (n) => () => setTarget(targetPct + n);
     tasks.push(withTimeout((document.fonts?.load('800 40px Syne') || Promise.resolve()).then(() => document.fonts?.load('400 12px "Space Mono"')), 2500).then(bump(10)));
     firstKeys.forEach((k) => tasks.push(withTimeout(loadImage(k), 6000).then(bump(50 / firstKeys.length))));
-    if (LOCAL.audio) {
-      createLocalAudio();
-      tasks.push(withTimeout(new Promise((r) => music.audio.addEventListener('canplaythrough', r, { once: true })), 8000).then(bump(20)));
-      loadYT(); // warm the API quietly as a fallback if the file fails
-    } else {
-      const yt = loadYT().then((ok) => { if (ok === true) createPlayer(); return ok; });
-      tasks.push(withTimeout(yt, 5000).then(bump(20)));
-    }
+    if (LOCAL.audio) createLocalAudio(); else createStreamAudio();
+    tasks.push(withTimeout(new Promise((r) => { if (!music.audio) return r(); music.audio.addEventListener('canplaythrough', r, { once: true }); music.audio.addEventListener('error', r, { once: true }); }), 8000).then(bump(20)));
     // warm local clips so the first frame is instant
-    shots.forEach((sh) => { const m = sh.media; if (typeof m === 'object' && m.yt) { const key = Object.keys(S.CLIPS).find((k) => S.CLIPS[k] === m); if (key && LOCAL.clips[key]) { const l = document.createElement('link'); l.rel = 'preload'; l.as = 'video'; l.href = LOCAL.clips[key].file; document.head.appendChild(l); } } });
+    shots.forEach((sh) => { const m = sh.media; if (typeof m === 'object' && m.file) { const key = Object.keys(S.CLIPS).find((k) => S.CLIPS[k] === m); if (key && LOCAL.clips[key]) { const l = document.createElement('link'); l.rel = 'preload'; l.as = 'video'; l.href = LOCAL.clips[key].file; document.head.appendChild(l); } } });
     tasks.push(new Promise((r) => setTimeout(r, 1800)).then(bump(20)));
     await Promise.all(tasks); setTarget(100);
     allKeys.forEach((k) => loadImage(k)); // warm the rest in the background
@@ -298,8 +259,8 @@
     $('#fgate-length').textContent = fmtT(totalSeconds());
     $('#fgate-cuts').textContent = String(shots.length);
     try { if (localStorage.getItem('humanity.filmSeen')) $('#fgate-eyebrow').textContent = 'Welcome back, explorer'; } catch (e) { /* noop */ }
-    if (music.mode === 'none' || music.failed) $('#enter-audio .fbtn-tag').textContent = '( audio may be unavailable )';
-    if (LOCAL.audio) $('#fgate-src').textContent = 'bundled with the site';
+    if (music.mode === 'none' || music.failed) $('#enter-audio .fbtn-tag').textContent = '( ambient score — track not bundled )';
+    $('#fgate-src').textContent = LOCAL.audio && !music.failed ? (LOCAL.audio.streamed ? 'served with the site' : 'bundled with the site') : 'not bundled — ambient score instead';
     const clockEl = $('#fgate-clock'); const tickClock = () => { clockEl.textContent = new Date().toTimeString().slice(0, 8) + ' LOCAL'; }; tickClock(); setInterval(tickClock, 1000);
     const mk = (root) => { const track = root.querySelector('.marquee-track'); const html = S.TAGS.map((t) => `<span><i>[</i>${esc(t)}<i style="margin:0 0 0 22px">]</i></span>`).join(''); track.innerHTML = html + html; };
     mk($('#fgate-marquee')); mk($('#stage-marquee'));
@@ -394,26 +355,35 @@
     if (typeof m === 'string') { frame.appendChild(still(shot, slot, m)); return frame; }
     const clipKey = Object.keys(S.CLIPS).find((k) => S.CLIPS[k] === m);
     const local = clipKey && LOCAL.clips[clipKey];
-    if (local) {
-      // local clip: real <video>, poster underneath, full resolution, no chrome
-      const c = el('div', 'media clip local');
-      const poster = el('img', 'poster'); poster.alt = ''; poster.crossOrigin = 'anonymous'; poster.src = local.poster || S.IMAGES[m.fallback]?.src || ''; poster.onerror = () => poster.remove(); c.appendChild(poster);
-      const v = document.createElement('video'); v.crossOrigin = 'anonymous'; v.muted = true; v.defaultMuted = true; v.playsInline = true; v.loop = true; v.preload = 'auto'; v.disablePictureInPicture = true; v.setAttribute('aria-hidden', 'true'); v.tabIndex = -1;
-      v.src = local.file; v.addEventListener('playing', () => v.classList.add('live'), { once: true });
-      // if the file is missing or undecodable, fall back to the Ken Burns still so the beat is never empty
-      v.addEventListener('error', () => { if (!c.isConnected) return; const s = still(shot, slot, m.fallback); c.replaceWith(s); slot.dataset.kind = 'img'; delete slot.dataset.video; }, { once: true });
-      c.appendChild(v); frame.appendChild(c); slot.dataset.kind = 'clip'; slot.dataset.video = '1'; return frame;
-    }
-    // streamed clip: poster + muted YouTube iframe (poster stays underneath until the video is visibly playing)
-    const c = el('div', 'media clip'); c.appendChild(still(shot, slot, m.fallback));
-    const ifr = document.createElement('iframe');
-    const id = m.yt; const start = m.start || 0;
-    ifr.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&controls=0&start=${start}&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&loop=1&playlist=${id}`;
-    ifr.allow = 'autoplay; encrypted-media'; ifr.title = ''; ifr.tabIndex = -1; ifr.setAttribute('aria-hidden', 'true'); ifr.referrerPolicy = 'strict-origin-when-cross-origin';
-    ifr.addEventListener('load', () => setTimeout(() => ifr.classList.add('live'), 1400));
-    c.appendChild(ifr); frame.appendChild(c); slot.dataset.kind = 'clip'; return frame;
+    // clip: a real <video> (local H.264 if bundled, else the Commons VP9 transcode), a poster underneath so the
+    // first beat is never black, no chrome, muted, looped inside its window. No third-party player anywhere.
+    const c = el('div', 'media clip' + (local ? ' local' : '') + (m.w && m.w < 640 ? ' lowres' : ''));
+    const stillDef = S.IMAGES[m.fallback];
+    const poster = el('img', 'poster'); poster.alt = ''; poster.crossOrigin = 'anonymous'; poster.referrerPolicy = 'no-referrer';
+    poster.src = local?.poster || (stillDef ? stillDef.src : S.clipPoster(m, 1280)); poster.onerror = () => { if (stillDef && poster.src !== stillDef.src) poster.src = stillDef.src; else poster.remove(); };
+    c.appendChild(poster);
+    const v = document.createElement('video'); v.crossOrigin = 'anonymous'; v.muted = true; v.defaultMuted = true; v.playsInline = true; v.loop = false; v.preload = 'auto'; v.disablePictureInPicture = true; v.setAttribute('aria-hidden', 'true'); v.tabIndex = -1;
+    const inPoint = local ? 0 : (m.start || 0); const outPoint = inPoint + (m.len || 10);
+    v.src = local ? local.file : S.clipUrl(m, clipHeight());
+    v._in = inPoint; v._out = outPoint;
+    // seek to the in-point as soon as metadata is known, then hold the frame until the cut lands
+    v.addEventListener('loadedmetadata', () => { try { if (Math.abs(v.currentTime - inPoint) > 0.25) v.currentTime = inPoint; } catch (e) { /* noop */ } }, { once: true });
+    v.addEventListener('timeupdate', () => { if (v.currentTime >= outPoint - 0.05) { try { v.currentTime = inPoint; } catch (e) { /* noop */ } } });
+    v.addEventListener('playing', () => { v.classList.add('live'); slot.dataset.video = '1'; }, { once: true });
+    // if the network / codec fails, fall back to the Ken Burns still so the beat is never empty
+    v.addEventListener('error', () => { if (!c.isConnected) return; const s = still(shot, slot, m.fallback); c.replaceWith(s); slot.dataset.kind = 'img'; delete slot.dataset.video; if (slot._cam && slot === curSlot) { slot._cam(); slot._cam = null; } if (slot === curSlot) { const d = S.IMAGES[m.fallback]; creditEl.textContent = d ? `${d.credit} · ${d.license}` : ''; } }, { once: true });
+    v.addEventListener('ended', () => { try { v.currentTime = inPoint; } catch (e) { /* noop */ } v.play().catch(() => { /* noop */ }); });
+    c.appendChild(v); frame.appendChild(c); slot.dataset.kind = 'clip';
+    if (window.gsap && !reduced) slot._cam = () => cameraClip([poster, v], shot);
+    return frame;
   }
-  function makeSlot(shot) { const slot = el('div', 'slot warm'); slot.dataset.shot = shot.index; slot.appendChild(mediaFor(shot, slot)); slots.appendChild(slot); const v = slot.querySelector('video'); if (v) v.play().catch(() => { /* will retry on show */ }); return slot; }
+  function cameraClip(els, shot) {
+    const secs = Math.max(0.6, shot.beats * spb()); const dir = (camI++ % 2) ? 1 : -1;
+    gsap.fromTo(els, { scale: 1.06, xPercent: 0.6 * dir, yPercent: 0 }, { scale: 1.0, xPercent: 0, yPercent: 0, duration: secs + 1.2, ease: 'sine.out', overwrite: true });
+  }
+  /* which Commons transcode to stream: enough rows for the stage at this DPR, never more than the file has */
+  function clipHeight() { const dpr = Math.min(2, window.devicePixelRatio || 1); const h = Math.round(stage.clientHeight * dpr); const save = navigator.connection?.saveData; return save ? 480 : h > 900 ? 1080 : 480; }
+  function makeSlot(shot) { const slot = el('div', 'slot warm'); slot.dataset.shot = shot.index; slot.appendChild(mediaFor(shot, slot)); slots.appendChild(slot); const v = slot.querySelector('video'); if (v) v.load(); /* buffer + decode the in-point now; play() happens on the cut so the first visible frame is the one we chose */ return slot; }
   function prewarm(shot) { if (prewarmed.has(shot.index)) return; prewarmed.set(shot.index, makeSlot(shot)); }
 
   function stageFx(cls, ms) { if (reduced) return; stage.classList.remove(cls); void stage.offsetWidth; stage.classList.add(cls); setTimeout(() => stage.classList.remove(cls), ms); }
@@ -434,6 +404,8 @@
 
   function slamWord(text, beats) {
     if (!text || reduced) return;
+    // a new word retires whatever is still on screen — two slams never stack
+    wordsEl.querySelectorAll('.word').forEach((o) => { if (window.gsap) gsap.to(o, { opacity: 0, duration: 0.12, overwrite: true, onComplete: () => o.remove() }); else o.remove(); });
     const w = el('div', 'word'); w.textContent = text;
     const variants = ['w-center', 'w-left', 'w-right', 'w-low', 'w-high'];
     const variant = variants[Math.floor(Math.random() * variants.length)]; w.classList.add(variant);
@@ -462,6 +434,7 @@
   };
   const GL_KEEP_FX = new Set(['burn', 'glitch']); // shader + the stage-wide flash/ghosting still feel right together
   const visibleMedia = (slot) => slot.querySelector('video.live') || slot.querySelector('img.img') || slot.querySelector('img.poster');
+  const clipEl = (slot) => slot.querySelector('video');
   let glWhy = '';
   function glCut(prev, slot, tr, shot) {
     glWhy = '';
@@ -469,7 +442,6 @@
     const spec = GL_MAP[tr]; if (!spec) { glWhy = 'css:' + tr; return false; }
     if (prev.dataset.kind === 'gen' || slot.dataset.kind === 'gen') { glWhy = 'gen'; return false; }
     if (prev.querySelector('.media.lowres') || slot.querySelector('.media.lowres')) { glWhy = 'lowres'; return false; } // contained images don't map onto the cover-fit shader
-    if (prev.querySelector('iframe.live')) { glWhy = 'iframe'; return false; } // a streamed clip is visible; its pixels aren't ours to sample
     const from = visibleMedia(prev), to = visibleMedia(slot); if (!from || !to) { glWhy = 'nomedia'; return false; }
     const dur = Math.min(spec[1], Math.max(0.3, shot.beats * spb() * 0.85));
     const ease = window.gsap ? gsap.parseEase(spec[0] === 'liquid' || spec[0] === 'luma' ? 'sine.inOut' : 'power2.inOut') : undefined;
@@ -496,7 +468,7 @@
       if (prev) { prev.classList.remove('on'); prev.classList.add('off', 'tr-' + tr); }
       void slot.offsetWidth; slot.classList.add('go');
     }
-    const vid = slot.querySelector('video'); if (vid) { if (vid.paused) vid.play().catch(() => { /* noop */ }); }
+    const vid = clipEl(slot); if (vid) { try { if (vid.readyState >= 1 && Math.abs(vid.currentTime - vid._in) > 0.6) vid.currentTime = vid._in; } catch (e) { /* noop */ } if (vid.paused) vid.play().catch(() => { /* muted autoplay after the gate gesture is always allowed */ }); }
     if (prev) prev.querySelectorAll('video').forEach((pv) => setTimeout(() => { pv.pause(); pv.removeAttribute('src'); pv.load(); }, 1200));
     if (!hard) { if (!gpu || GL_KEEP_FX.has(tr)) FX[tr]?.(); if (!titlecard) slamWord(shot.word, shot.beats); }
     curSlot = slot;
@@ -504,10 +476,10 @@
     // caption + credit
     capEl.textContent = shot.caption || ''; capEl.classList.toggle('on', !!shot.caption);
     const key = keyOf(shot.media); const def = key && S.IMAGES[key];
-    if (typeof shot.media === 'object' && shot.media.yt) { const ck = Object.keys(S.CLIPS).find((k) => S.CLIPS[k] === shot.media); creditEl.textContent = (S.CLIPS[ck]?.title ? S.CLIPS[ck].title + ' · ' : 'footage · ') + 'youtube.com/watch?v=' + shot.media.yt; }
+    if (typeof shot.media === 'object' && shot.media.file) creditEl.textContent = `${shot.media.title} · ${shot.media.license}`;
     else creditEl.textContent = def && slot.dataset.kind === 'img' ? `${def.credit} · ${def.license}` : '';
-    // prewarm upcoming clips (~5 s ahead) so iframes are already playing when they cut in
-    for (let j = i + 1; j < shots.length && shots[j].start - shot.start < Math.ceil(5 / spb()) + 1; j++) { const mj = shots[j].media; if (typeof mj === 'object' && mj.yt) prewarm(shots[j]); }
+    // prewarm upcoming clips (~5 s ahead) so the videos are buffered and parked on their in-point when they cut in
+    for (let j = i + 1; j < shots.length && shots[j].start - shot.start < Math.ceil(5 / spb()) + 1; j++) { const mj = shots[j].media; if (typeof mj === 'object' && mj.file) prewarm(shots[j]); }
     // and the next two shots of any kind, so their pixels are decoded (and uploaded to the GPU) before the cut lands
     for (let j = i + 1; j <= i + 2 && j < shots.length; j++) prewarm(shots[j]);
   }
@@ -623,7 +595,7 @@
     if (titlecard && beat >= tcOutBeat) hideTitlecard();
     updateProgress(beat); updateYear(beat);
     const tcs = `${fmtT(t)} / ${fmtT(totalSeconds())}`; if (tcs !== lastTc) { tcEl.textContent = tcs; lastTc = tcs; }
-    if (DEBUG) debugEl.textContent = `t ${t.toFixed(2)}s  beat ${beat.toFixed(2)}  bar ${Math.floor(beat / 4) + 1}\nbpm ${T.bpm.toFixed(2)}  offset ${T.offset.toFixed(3)}s  clock ${clock.source}  music ${music.playing ? 'playing' : music.failed ? 'failed' : music.ready ? 'ready' : music.player ? 'created' : 'none'}\nchapter ${chapters[curChapter]?.id || '-'}  shot ${curShot}\n?bpm=${T.bpm.toFixed(2)}&offset=${T.offset.toFixed(3)}\nT tap · O downbeat · ←→ offset · ↑↓ bpm · [ ] seek`;
+    if (DEBUG) debugEl.textContent = `t ${t.toFixed(2)}s  beat ${beat.toFixed(2)}  bar ${Math.floor(beat / 4) + 1}\nbpm ${T.bpm.toFixed(2)}  offset ${T.offset.toFixed(3)}s  clock ${clock.source}  music ${music.playing ? 'playing' : music.failed ? 'failed' : music.ready ? 'ready' : 'none'}\nchapter ${chapters[curChapter]?.id || '-'}  shot ${curShot}\n?bpm=${T.bpm.toFixed(2)}&offset=${T.offset.toFixed(3)}\nT tap · O downbeat · ←→ offset · ↑↓ bpm · [ ] seek`;
     raf = requestAnimationFrame(frame);
   }
 
@@ -638,7 +610,7 @@
     settleMusic();
     const soundOn = musicActive() && !music.muted;
     window.HumanityApp?.enter(false, { fromFilm: true, music: soundOn, ambient: !!window.Ambient?.enabled });
-    setTimeout(() => { film.remove(); }, 1300); // #yt-host lives outside #film, so the soundtrack survives
+    setTimeout(() => { film.remove(); }, 1300); // the <audio> element isn't in #film, so the soundtrack survives
     try { localStorage.setItem('humanity.filmSeen', String(Date.now())); } catch (e) { /* private mode */ }
     if (document.fullscreenElement && q.get('fs') === '1') document.exitFullscreen?.();
   }

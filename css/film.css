@@ -147,10 +147,12 @@ body.filming main, body.filming footer, body.filming #nav, body.filming #progres
 .rgb-ghost.b { filter: sepia(1) saturate(8) hue-rotate(160deg) contrast(1.2); }
 .media.clip { overflow: hidden; background: #000; }
 .media.clip .poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.media.clip iframe { position: absolute; left: 50%; top: 50%; width: 177.78vh; min-width: 100%; height: 56.25vw; min-height: 100%; transform: translate(-50%, -50%) scale(1.18); border: 0; pointer-events: none; opacity: 0; transition: opacity 0.6s; }
-.media.clip iframe.live { opacity: 1; }
-.media.clip.local video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.25s; }
-.media.clip.local video.live { opacity: 1; }
+.media.clip video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.3s; pointer-events: none; transform-origin: 50% 50%; }
+.media.clip .poster { transform-origin: 50% 50%; }
+.media.clip video.live { opacity: 1; }
+/* small archival sources (the 1908 Wright footage is 400 px wide) sit in a soft vignette rather than being smeared full-bleed */
+.media.clip.lowres video { object-fit: contain; padding: 6vh 0; box-sizing: border-box; filter: drop-shadow(0 20px 60px rgba(0, 0, 0, 0.6)); }
+.media.clip.lowres .poster { filter: blur(28px) brightness(0.45) saturate(1.2); transform: scale(1.1); }
 .media.gen { background: radial-gradient(ellipse at 50% 60%, rgba(232, 201, 138, 0.10), transparent 60%); }
 .media.gen.clear { background: transparent; }
 .gen-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px); background-size: 12.5% 25%; mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%); -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%); }
@@ -180,29 +182,31 @@ body.filming main, body.filming footer, body.filming #nav, body.filming #progres
 .slot.on.tr-fade.go { opacity: 1; }
 .slot.off.tr-fade { transition: opacity 0.8s var(--f-io); }
 .slot.on.tr-punch { opacity: 1; transform: scale(1.4); }
-.slot.on.tr-punch.go { transform: scale(1); transition: transform 0.5s var(--f-out); }
-.slot.on.tr-whip { opacity: 1; transform: translateX(80%); filter: blur(16px); }
-.slot.on.tr-whipL { opacity: 1; transform: translateX(-80%); filter: blur(16px); }
-.slot.on.tr-whip.go, .slot.on.tr-whipL.go { transform: none; filter: blur(0); transition: transform 0.38s var(--f-out), filter 0.38s; }
-.slot.off.tr-whip { transform: translateX(-45%); filter: blur(12px); opacity: 0; transition: transform 0.38s var(--f-io), filter 0.38s, opacity 0.3s 0.1s; }
-.slot.off.tr-whipL { transform: translateX(45%); filter: blur(12px); opacity: 0; transition: transform 0.38s var(--f-io), filter 0.38s, opacity 0.3s 0.1s; }
+.slot.on.tr-punch.go { transform: scale(1); transition: transform 0.6s var(--f-out); }
+.slot.on.tr-whip { opacity: 1; transform: translateX(80%) skewX(-8deg) scale(1.06); }
+.slot.on.tr-whipL { opacity: 1; transform: translateX(-80%) skewX(8deg) scale(1.06); }
+.slot.on.tr-whip.go, .slot.on.tr-whipL.go { transform: none; transition: transform 0.42s var(--f-out); }
+.slot.off.tr-whip { transform: translateX(-45%) skewX(-6deg) scale(1.04); opacity: 0; transition: transform 0.42s var(--f-io), opacity 0.3s 0.12s; }
+.slot.off.tr-whipL { transform: translateX(45%) skewX(6deg) scale(1.04); opacity: 0; transition: transform 0.42s var(--f-io), opacity 0.3s 0.12s; }
 .slot.on.tr-zoomin { opacity: 0; transform: scale(0.6); }
-.slot.on.tr-zoomin.go { opacity: 1; transform: none; transition: transform 0.55s var(--f-out), opacity 0.3s; }
+.slot.on.tr-zoomin.go { opacity: 1; transform: none; transition: transform 0.65s var(--f-out), opacity 0.28s; }
 .slot.on.tr-zoomout { opacity: 0; transform: scale(1.7); }
-.slot.on.tr-zoomout.go { opacity: 1; transform: none; transition: transform 0.55s var(--f-out), opacity 0.25s; }
+.slot.on.tr-zoomout.go { opacity: 1; transform: none; transition: transform 0.65s var(--f-out), opacity 0.22s; }
 .slot.on.tr-wipe { opacity: 1; clip-path: inset(0 100% 0 0); }
-.slot.on.tr-wipe.go { clip-path: inset(0 0 0 0); transition: clip-path 0.45s var(--f-out); }
+.slot.on.tr-wipe.go { clip-path: inset(0 0 0 0); transition: clip-path 0.5s var(--f-out); }
+.slot.off.tr-wipe { transform: translateX(-8%); transition: transform 0.5s var(--f-out), opacity 0.3s 0.4s; }
 .slot.on.tr-slice { opacity: 1; clip-path: inset(0 0 100% 0); }
 .slot.on.tr-slice.go { clip-path: inset(0 0 0 0); transition: clip-path 0.42s steps(7, end); }
 .slot.on.tr-iris { opacity: 1; clip-path: circle(0% at 50% 50%); }
-.slot.on.tr-iris.go { clip-path: circle(80% at 50% 50%); transition: clip-path 0.7s var(--f-out); }
+.slot.on.tr-iris.go { clip-path: circle(80% at 50% 50%); transition: clip-path 0.75s var(--f-out); }
+.slot.off.tr-iris { transform: scale(1.06); transition: transform 0.75s var(--f-out), opacity 0.4s 0.5s; }
 .slot.on.tr-drop { opacity: 0; transform: scale(1.5); }
 .slot.on.tr-drop.go { opacity: 1; transform: none; transition: opacity 0.05s 0.14s, transform 0.45s var(--f-out) 0.14s; }
 .slot.off.tr-drop { opacity: 0; transition: none; }
 
-.slot.on.tr-zoomblur { opacity: 1; transform: scale(1.6); filter: blur(14px) brightness(1.6); }
-.slot.on.tr-zoomblur.go { transform: none; filter: blur(0) brightness(1); transition: transform 0.42s var(--f-out), filter 0.42s var(--f-out); }
-.slot.off.tr-zoomblur { transform: scale(0.8); filter: blur(10px); opacity: 0; transition: transform 0.42s var(--f-io), filter 0.4s, opacity 0.3s 0.1s; }
+.slot.on.tr-zoomblur { opacity: 0; transform: scale(1.6); }
+.slot.on.tr-zoomblur.go { opacity: 1; transform: none; transition: transform 0.46s var(--f-out), opacity 0.18s; }
+.slot.off.tr-zoomblur { transform: scale(0.82); opacity: 0; transition: transform 0.46s var(--f-io), opacity 0.3s 0.1s; }
 .slot.on.tr-shutter { opacity: 1; }
 .slot.on.tr-shutter .frame { -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0 1%, transparent 1% 12.5%); mask-image: repeating-linear-gradient(to bottom, #000 0 1%, transparent 1% 12.5%); }
 .slot.on.tr-shutter.go .frame { animation: shutter 0.45s linear both; -webkit-mask-image: none; mask-image: none; }
@@ -222,11 +226,11 @@ body.filming main, body.filming footer, body.filming #nav, body.filming #progres
 .slot.on.tr-burn.go { opacity: 1; filter: none; transition: opacity 0.4s, filter 1.1s var(--f-out); }
 .slot.off.tr-burn { filter: brightness(2.5) sepia(1); opacity: 0; transition: filter 0.5s, opacity 0.5s 0.2s; }
 .slot.on.tr-rise { opacity: 1; transform: translateY(100%); }
-.slot.on.tr-rise.go { transform: none; transition: transform 0.55s var(--f-out); }
-.slot.off.tr-rise { transform: translateY(-30%) scale(0.95); opacity: 0.4; transition: transform 0.55s var(--f-out), opacity 0.5s; }
+.slot.on.tr-rise.go { transform: none; transition: transform 0.6s var(--f-out); }
+.slot.off.tr-rise { transform: translateY(-30%) scale(0.95); opacity: 0.4; transition: transform 0.6s var(--f-out), opacity 0.5s; }
 .slot.on.tr-fall { opacity: 1; transform: translateY(-100%); }
-.slot.on.tr-fall.go { transform: none; transition: transform 0.55s var(--f-out); }
-.slot.off.tr-fall { transform: translateY(30%) scale(0.95); opacity: 0.4; transition: transform 0.55s var(--f-out), opacity 0.5s; }
+.slot.on.tr-fall.go { transform: none; transition: transform 0.6s var(--f-out); }
+.slot.off.tr-fall { transform: translateY(30%) scale(0.95); opacity: 0.4; transition: transform 0.6s var(--f-out), opacity 0.5s; }
 
 /* ---------- kinetic words ---------- */
 .words { position: absolute; inset: 0; pointer-events: none; z-index: 5; overflow: hidden; }
@@ -261,8 +265,8 @@ body.filming main, body.filming footer, body.filming #nav, body.filming #progres
 .stage.fx-shake { animation: shake 0.45s var(--f-out) both; }
 @keyframes shake { 0% { transform: translate(0, 0); } 15% { transform: translate(-10px, 6px); } 30% { transform: translate(9px, -5px); } 45% { transform: translate(-6px, 4px); } 60% { transform: translate(4px, -3px); } 100% { transform: none; } }
 .stage.fx-strobe .stage-vignette { animation: strobe 0.5s steps(1) both; }
-.stage.fx-zoomblur #slots { animation: zoomblur 0.42s var(--f-out) both; }
-@keyframes zoomblur { 0% { filter: blur(6px); } 100% { filter: blur(0); } }
+.stage.fx-zoomblur .stage-vignette { animation: zoomblur 0.46s var(--f-out) both; }
+@keyframes zoomblur { 0% { box-shadow: inset 0 0 22vmin 8vmin rgba(255, 255, 255, 0.5); } 100% { box-shadow: inset 0 0 0 0 rgba(255, 255, 255, 0); } }
 .stage.fx-shutter #slots { animation: shutterFlash 0.42s steps(3) both; }
 @keyframes shutterFlash { 0% { filter: brightness(1.6) contrast(1.3); } 100% { filter: none; } }
 .stage.fx-flicker #slots { animation: flickerAll 0.5s steps(1) both; }
@@ -344,8 +348,6 @@ body.filming main, body.filming footer, body.filming #nav, body.filming #progres
 .debug[hidden] { display: none; }
 
 /* Hidden music player (audio only). Keep it in the DOM, tiny, non-interactive. */
-#yt-host { position: fixed; left: 0; bottom: 0; width: 2px; height: 2px; overflow: hidden; opacity: 0.01; pointer-events: none; z-index: 0; }
-#yt-host iframe { width: 320px; height: 180px; }
 
 /* After the film: a persistent, tiny "now playing" pill in the site nav is handled by style.css (#now-pill) */
 

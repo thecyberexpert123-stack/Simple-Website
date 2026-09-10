@@ -106,7 +106,7 @@ window.HUMANITY = (function () {
       lede: 'Twelve seconds. One hundred and twenty feet.',
       text: 'On a cold December morning at Kitty Hawk, two bicycle mechanics from Ohio did what every human who ever watched a bird had dreamed of. Sixty-six years later — within a single human lifetime — we were walking on the Moon. No other species has ever accelerated like this.',
       facts: ['The Wright Flyer\'s first flight was shorter than a Boeing 747\'s wingspan.', 'Today around 100,000 flights carry roughly 12 million passengers every single day.', 'Charles Lindbergh crossed the Atlantic in 1927; Concorde did it in under 3 hours by 1976.'],
-      video: { id: 'FnML3I-yYyo', title: 'Flying the Wright Flyer', source: 'Smithsonian National Air and Space Museum' }
+      video: { id: 'FnML3I-yYyo', clip: 'wright', title: 'Flying the Wright Flyer', source: 'Smithsonian National Air and Space Museum' }
     },
     {
       id: 'atom',
@@ -126,7 +126,7 @@ window.HUMANITY = (function () {
       lede: 'Life left its planet for the first time in four billion years.',
       text: 'Sputnik. Gagarin. Then, on 20 July 1969, 600 million people watched two humans step onto another world and come home. The Apollo program remains the furthest any living thing has travelled from Earth. We went, as Kennedy said, not because it was easy, but because it was hard.',
       facts: ['The Apollo Guidance Computer had about 4 KB of RAM.', 'Twelve humans have walked on the Moon. They brought back 382 kg of it.', 'Apollo 8\'s "Earthrise" photograph helped ignite the modern environmental movement.'],
-      video: { id: 'pJbtYs0oZfQ', title: 'Apollo 11 Moonwalk — restored footage', source: 'NASA / NFSA' }
+      video: { id: 'pJbtYs0oZfQ', clip: 'apollo', title: 'Apollo 11 Moonwalk — restored footage', source: 'NASA / NFSA' }
     },
     {
       id: 'network',
@@ -146,7 +146,7 @@ window.HUMANITY = (function () {
       lede: 'We photographed the edge of time.',
       text: 'Hubble showed us a universe of a trillion galaxies. Voyager 1 crossed into interstellar space carrying a golden record of our music. LIGO heard two black holes collide over a billion light-years away. The Event Horizon Telescope photographed a black hole. And in 2022 the James Webb Space Telescope began to show us the first galaxies ever to form.',
       facts: ['Voyager 1 is the most distant human-made object — over 25 billion km away, still transmitting.', 'LIGO can measure a change in length smaller than 1/10,000th the width of a proton.', 'Webb\'s mirror is 6.5 m across and operates at –233 °C, 1.5 million km from Earth.'],
-      video: { id: 'nmMRMIE3MGw', title: 'First images from the James Webb Space Telescope', source: 'NASA' }
+      video: { id: 'nmMRMIE3MGw', clip: 'webb', title: 'First images from the James Webb Space Telescope', source: 'NASA' }
     },
     {
       id: 'now',
@@ -175,25 +175,25 @@ window.HUMANITY = (function () {
           year: 1969, title: 'Apollo 11', sub: 'First humans on another world',
           text: 'Neil Armstrong and Buzz Aldrin spent 21 hours on the lunar surface while Michael Collins orbited above. Around 600 million people — a fifth of humanity — watched live. It remains the furthest any human has ever travelled.',
           facts: ['Distance: 384,400 km', 'Crew: 3 · Support staff: ~400,000', 'Fuel at landing: ~25 seconds left'],
-          video: { id: 'pJbtYs0oZfQ', title: 'Apollo 11 Moonwalk — restored footage', source: 'NASA / NFSA Australia' }
+          video: { id: 'pJbtYs0oZfQ', clip: 'apollo', title: 'Apollo 11 Moonwalk — restored footage', source: 'NASA / NFSA Australia' }
         },
         {
           year: 1968, title: 'Earthrise', sub: 'The photograph that changed how we see home',
           text: 'On Christmas Eve 1968, Apollo 8 astronaut Bill Anders photographed the Earth rising over the lunar horizon. "We came all this way to explore the Moon," he said, "and the most important thing is that we discovered the Earth."',
           facts: ['First crewed flight to leave Earth orbit', 'Camera: Hasselblad 500 EL, 70 mm film', 'Widely credited with inspiring Earth Day (1970)'],
-          video: { id: 'dE-vOscpiNc', title: 'Earthrise — reconstructed from lunar orbiter data', source: 'NASA Goddard' }
+          video: { id: 'dE-vOscpiNc', clip: 'earthrise', title: 'Earthrise — reconstructed from lunar orbiter data', source: 'NASA Goddard' }
         },
         {
           year: 1977, title: 'Voyager', sub: 'The furthest thing we have ever made',
           text: 'Two probes launched in 1977 toured Jupiter, Saturn, Uranus and Neptune, then kept going. Voyager 1 entered interstellar space in 2012. Each carries a Golden Record — greetings in 55 languages, Bach, Chuck Berry, a heartbeat — a message in a bottle for whoever finds it.',
           facts: ['Distance: > 25 billion km and counting', 'Signal travel time to Earth: ~23 hours', 'Power: plutonium, expected to last into the 2030s'],
-          video: { id: 'D4m3BOtAaj0', title: 'Highlights from Voyager\'s 40th anniversary', source: 'NASA' }
+          video: { id: 'D4m3BOtAaj0', clip: 'voyager', title: 'Highlights from Voyager\'s 40th anniversary', source: 'NASA' }
         },
         {
           year: 2000, title: 'The International Space Station', sub: 'A quarter century of continuous human presence in orbit',
           text: 'Built by 15 nations, the ISS has been continuously crewed since 2 November 2000. It is the most expensive single object ever constructed and a living demonstration that former adversaries can build together — 400 km up, at 28,000 km/h.',
           facts: ['Orbits: ~16 per day', 'Mass: ~420 tonnes', 'Visited by 280+ people from 20+ countries'],
-          video: { id: 'uwXgcTc8oY8', title: 'Live video from the International Space Station', source: 'NASA (live stream)' }
+          video: { clip: 'iss', title: 'Five minutes in orbit — a time-lapse from the ISS', source: 'NASA Earth Observatory' }
         },
         {
           year: 2015, title: 'Gravitational Waves', sub: 'Hearing the universe for the first time',
@@ -205,19 +205,19 @@ window.HUMANITY = (function () {
           year: 2019, title: 'The First Image of a Black Hole', sub: 'Photographing the unphotographable',
           text: 'Eight radio telescopes across the globe were synchronised into one Earth-sized instrument. The result: the shadow of the supermassive black hole at the heart of galaxy M87, 55 million light-years away and 6.5 billion times the mass of the Sun.',
           facts: ['Data: ~5 petabytes, shipped on hard drives', 'Resolution: reading a newspaper in New York from Paris', 'Team: 300+ scientists, 20 countries'],
-          video: { id: 'Dr20f19czeE', title: 'First ever image of a black hole', source: 'European Commission / EHT' }
+          video: { id: 'Dr20f19czeE', clip: 'blackhole', title: 'First ever image of a black hole', source: 'European Commission / EHT' }
         },
         {
           year: 2021, title: 'Perseverance & Ingenuity', sub: 'A helicopter flies on another planet',
           text: 'Perseverance landed in Jezero Crater on its own, using terrain-relative navigation, and filmed its own descent. Weeks later Ingenuity became the first aircraft to fly on another world — in air 1% as dense as Earth\'s. It was designed for 5 flights and made 72.',
           facts: ['Landing: "seven minutes of terror", fully autonomous', 'Ingenuity rotor speed: 2,400 rpm', 'Samples cached for future return to Earth'],
-          video: { id: '4czjS9h4Fpg', title: 'Perseverance descent and touchdown on Mars', source: 'NASA' }
+          video: { id: '4czjS9h4Fpg', clip: 'mars', title: 'Perseverance descent and touchdown on Mars', source: 'NASA' }
         },
         {
           year: 2022, title: 'James Webb Space Telescope', sub: 'Seeing the first light in the universe',
           text: 'A 6.5-metre gold-coated mirror unfolded itself in deep space, 1.5 million km from Earth, cooled to –233 °C. Webb sees infrared light stretched by 13 billion years of cosmic expansion — the first galaxies, the atmospheres of alien worlds.',
           facts: ['344 single points of failure during deployment — all succeeded', 'Sunshield: the size of a tennis court', 'Mirror: 18 hexagonal beryllium segments'],
-          video: { id: 'nmMRMIE3MGw', title: 'First images from Webb (official broadcast)', source: 'NASA' }
+          video: { id: 'nmMRMIE3MGw', clip: 'webb', title: 'First images from Webb (official broadcast)', source: 'NASA' }
         }
       ]
     },
@@ -361,7 +361,7 @@ window.HUMANITY = (function () {
           year: 2015, title: 'Reusable Rockets', sub: 'Landing a skyscraper on its tail',
           text: 'For sixty years, rockets were thrown away after one use. In December 2015 a Falcon 9 booster returned and landed upright. In 2024 a Super Heavy booster was caught by its own launch tower. The cost of reaching orbit has fallen by an order of magnitude.',
           facts: ['Falcon boosters reflown: 20+ times each', 'Falcon Heavy side boosters landed in sync, Feb 2018', 'Starship: the largest and most powerful rocket ever flown'],
-          video: { id: 'wbSwFU6tY1c', title: 'Falcon Heavy test flight', source: 'SpaceX' }
+          video: { id: 'wbSwFU6tY1c', clip: 'falcon', title: 'Falcon Heavy test flight', source: 'SpaceX' }
         }
       ]
     },

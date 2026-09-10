@@ -12,7 +12,7 @@
    (?debug=1 → press T on the beat, O on a downbeat).
 
    Shot syntax:  [ media, beats, transition, caption, word ]
-     media      'imgKey' | { yt:'videoId', start:sec, fallback:'imgKey' }
+     media      'imgKey' | CLIPS.key (a Commons video, see below)
                 | { mode:'cosmosMode' }   (pure generative background)
      transition cut | punch | whip | whipL | fade | glitch | flash | zoomin
                 | zoomout | wipe | slice | iris | invert | drop | zoomblur
@@ -81,6 +81,7 @@ window.FILM_SCRIPT = (function () {
     transistor: { file: 'Bardeen_Shockley_Brattain_1948.JPG', h: 'c2', w: 3073, credit: 'Bardeen, Shockley & Brattain — Bell Labs, 1948', license: 'Public domain' },
     eniac: { file: 'Eniac.jpg', h: '4e', w: 1340, credit: 'ENIAC, 1946 — U.S. Army', license: 'Public domain' },
     higgs: { file: 'CMS_Higgs-event.jpg', h: '1c', w: 1104, credit: 'Simulated Higgs event, CMS — CERN', license: 'Public domain' },
+    nif: { file: "National_Ignition_Facility's_target_chamber.jpg", h: '7c', w: 4256, credit: 'National Ignition Facility target chamber — LLNL', license: 'CC BY-SA 3.0' },
     // space
     sputnik: { file: 'Sputnik_asm.jpg', h: 'be', w: 1094, credit: 'Sputnik 1, 1957 — NASA', license: 'Public domain' },
     gagarin: { file: 'Yuri_Gagarin_(1961)_-_Restoration.jpg', h: 'e5', w: 2213, credit: 'Yuri Gagarin, 1961', license: 'Public domain' },
@@ -117,25 +118,50 @@ window.FILM_SCRIPT = (function () {
   }
 
   /* ------------------------------------------------------------------
-     Muted archival clips (YouTube, official channels). `start` is the
-     in-point in seconds, `len` how many seconds of footage the film can
-     use (tools/fetch-media.js trims to this window and stores it in
-     media/clips/<key>.mp4 — the local file then starts at 0).
-     Every clip has a still as fallback. `live` streams can't be saved.
+     Muted archival clips. Every clip is a real video file on Wikimedia
+     Commons (public domain / CC, CORS-enabled, seekable), so the film
+     plays it in a plain <video> — no YouTube player, no "Video
+     unavailable" tiles, instant in-points, and the WebGL shader can
+     sample its pixels for GPU transitions.
+
+       file   Commons file name (md5 prefix in `h`, same scheme as IMAGES)
+       start  in-point in seconds; `len` how long the film may use
+       q      transcode heights available on Commons (browser picks the
+              best one ≤ its viewport); '0' = the original upload
+       yt     the original publisher's YouTube upload, kept only for the
+              credit line and as the source tools/fetch-media.js pulls
+              a local H.264 copy from (media/clips/<key>.mp4)
+
+     Every clip has a still as fallback, so a beat is never empty.
      ------------------------------------------------------------------ */
   const CLIPS = {
-    wright: { yt: 'FnML3I-yYyo', start: 24, len: 12, fallback: 'flight', title: 'Flying the Wright Flyer — Smithsonian' },
-    apollo: { yt: 'pJbtYs0oZfQ', start: 95, len: 12, fallback: 'aldrin', title: 'Apollo 11 moonwalk — NASA / NFSA' },
-    earthrise: { yt: 'dE-vOscpiNc', start: 40, len: 10, fallback: 'earthrise', title: 'Earthrise reconstruction — NASA Goddard' },
-    falcon: { yt: 'wbSwFU6tY1c', start: 1850, len: 8, fallback: 'falcon', title: 'Falcon Heavy test flight — SpaceX' },
-    mars: { yt: '4czjS9h4Fpg', start: 150, len: 10, fallback: 'curiosity', title: 'Perseverance landing — NASA' },
-    issLive: { yt: 'uwXgcTc8oY8', start: 0, len: 10, fallback: 'iss', live: true, title: 'ISS live stream — NASA' },
-    starship: { yt: 'hI9HQfCAw64', start: 30, len: 12, fallback: 'falcon', title: 'Starship Flight 5 — SpaceX' },
-    webb: { yt: 'nmMRMIE3MGw', start: 1290, len: 8, fallback: 'webb', title: 'Webb first images — NASA' },
-    blackhole: { yt: 'Dr20f19czeE', start: 5, len: 10, fallback: 'bh', title: 'First image of a black hole — EHT' },
-    higgs: { yt: 'm-dNqCbRc_Y', start: 10, len: 8, fallback: 'higgs', title: 'Higgs discovery — CERN' },
-    fusion: { yt: '6Eh2rZAD6uc', start: 20, len: 6, fallback: 'trinity', title: 'Fusion ignition — LLNL' }
+    wright: { file: 'First_flights_in_aviation_history.ogv', h: 'a8', w: 400, hgt: 288, q: [240, 0], start: 2, len: 12, fallback: 'flight', yt: 'FnML3I-yYyo', title: 'Wilbur Wright demonstrates the Flyer, 1908–09 — U.S. National Archives', license: 'Public domain' },
+    apollo: { file: 'One_Small_Step_-_NASA.webm', h: '3e', w: 1280, hgt: 720, q: [240, 480, 0], start: 30, len: 12, fallback: 'aldrin', yt: 'pJbtYs0oZfQ', title: 'One small step — restored Apollo 11 TV, NASA Johnson', license: 'Public domain' },
+    earthrise: { file: 'NASA_-_Earthrise-_The_45th_Anniversary_dE-vOscpiNc.webm', h: '9f', w: 1920, hgt: 1080, q: [240, 480, 1080], start: 165, len: 10, fallback: 'earthrise', yt: 'dE-vOscpiNc', title: 'Earthrise, reconstructed from LRO data — NASA Goddard / SVS', license: 'Public domain' },
+    falcon: { file: 'Falcon_Heavy_test_flight.webm', h: '3d', w: 3840, hgt: 2160, q: [240, 480, 1080], start: 60, len: 8, fallback: 'falcon', yt: 'wbSwFU6tY1c', title: 'Falcon Heavy maiden flight — NASA / KSC', license: 'Public domain' },
+    mars: { file: "Perseverance_Rover's_Descent_and_Touchdown_on_Mars_Onboard_Camera_Views_.webm", h: '0d', w: 3840, hgt: 2160, q: [240, 480, 1080], start: 150, len: 10, fallback: 'curiosity', yt: '4czjS9h4Fpg', title: 'Perseverance descent & touchdown — NASA / JPL-Caltech', license: 'Public domain' },
+    iss: { file: 'Five_Minutes_in_Orbit_(154728).webm', h: '53', w: 1920, hgt: 1280, q: [240, 480, 0], start: 4, len: 10, fallback: 'iss', title: 'Five minutes in orbit — ISS crew time-lapse, NASA Earth Observatory, 2025', license: 'Public domain' },
+    starship: { file: 'Starship_Sixth_Flight_Test_From_SpaceX_(CIRA_2024-11-19_-_nolabels).webm', h: 'f5', w: 1920, hgt: 1080, q: [240, 480, 1080], start: 0, len: 5.4, fallback: 'falcon', yt: 'hI9HQfCAw64', title: "Starship's exhaust plume seen from GOES, 19 Nov 2024 — CSU/CIRA & NOAA", license: 'Public domain' },
+    webb: { file: 'Webb_First_Images_Promos_(SVS14178_-_WEBB_FIRST_IMAGES_PROMO1).webm', h: 'b8', w: 1920, hgt: 1080, q: [240, 480, 1080], start: 3, len: 8, fallback: 'webb', yt: 'nmMRMIE3MGw', title: 'Webb first images — NASA SVS', license: 'Public domain' },
+    blackhole: { file: 'Zooming_in_to_the_Heart_of_Messier_87.webm', h: '70', w: 3840, hgt: 2160, q: [240, 480, 1080], start: 38, len: 10, fallback: 'bh', yt: 'Dr20f19czeE', title: 'Zooming in to the heart of M87 — ESO / EHT Collaboration', license: 'CC BY 4.0' },
+    voyager: { file: 'JPL-19801112-VOYAGEf-0001-AVC2002151_Voyager_1_at_Saturn.webm', h: '22', w: 960, hgt: 720, q: [240, 480, 0], start: 20, len: 8, fallback: 'pbd', yt: 'D4m3BOtAaj0', title: 'Voyager 1 at Saturn, 1980 — NASA / JPL', license: 'Public domain' }
   };
+  /* Direct Commons URL for a clip at the best transcode ≤ `maxH` px tall. */
+  function clipUrl(c, maxH) {
+    const f = encodeURIComponent(c.file).replace(/%2C/g, ',').replace(/%27/g, "'").replace(/%28/g, '(').replace(/%29/g, ')').replace(/%21/g, '!').replace(/%2A/g, '*');
+    const base = `https://upload.wikimedia.org/wikipedia/commons/${c.h[0]}/${c.h}/${f}`;
+    const qs = c.q.filter((h) => h > 0).sort((a, b) => a - b);
+    const fit = qs.filter((h) => h <= (maxH || 1080));
+    const pick = fit.length ? fit[fit.length - 1] : qs[0];
+    if (c.q.includes(0) && (!pick || pick < Math.min(maxH || 1080, c.hgt) * 0.75) && c.hgt <= 1080) return base; // original is small and better than the transcodes
+    if (!pick) return base;
+    return `https://upload.wikimedia.org/wikipedia/commons/transcoded/${c.h[0]}/${c.h}/${f}/${f}.${pick}p.vp9.webm`;
+  }
+  /* Poster frame Commons renders for a clip (used underneath the video until its first frame paints). */
+  function clipPoster(c, width) {
+    const f = encodeURIComponent(c.file).replace(/%2C/g, ',').replace(/%27/g, "'").replace(/%28/g, '(').replace(/%29/g, ')').replace(/%21/g, '!').replace(/%2A/g, '*');
+    return `https://upload.wikimedia.org/wikipedia/commons/thumb/${c.h[0]}/${c.h}/${f}/${width || 1280}px-seek%3D${Math.round(c.start)}-${f}.jpg`;
+  }
 
   /* ------------------------------------------------------------------
      Chapters. `mode` is the generative background (js/cosmos.js) that
@@ -250,8 +276,8 @@ window.FILM_SCRIPT = (function () {
         ['transistor', 3, 'punch', 'The transistor — Bell Labs, 1947', 'SWITCH'],
         ['eniac', 1, 'cut', 'ENIAC, 1946 — 18,000 vacuum tubes'],
         ['eniac', 2, 'shutter', 'ENIAC, 1946 — 18,000 vacuum tubes', 'COMPUTE'],
-        [CLIPS.higgs, 4, 'glitch', 'The Higgs boson — CERN, 4 July 2012', 'HIGGS'],
-        [CLIPS.fusion, 2, 'burn', 'Fusion ignition — Lawrence Livermore, 5 December 2022', 'IGNITE']
+        ['higgs', 4, 'glitch', 'The Higgs boson — CERN, 4 July 2012', 'HIGGS'],
+        ['nif', 2, 'burn', 'Fusion ignition — Lawrence Livermore, 5 December 2022', 'IGNITE']
       ]
     },
     {
@@ -281,8 +307,8 @@ window.FILM_SCRIPT = (function () {
         ['web', 3, 'slice', 'The first web server — CERN, 1990. "DO NOT POWER DOWN!!"', 'WWW'],
         ['netmap', 1, 'glitch', 'A map of the Internet, 2005 — Opte Project'],
         ['netmap', 2, 'zoomout', 'A map of the Internet, 2005 — Opte Project', 'CONNECT'],
-        ['pbd', 2, 'iris', 'Pale Blue Dot — Voyager 1 looks home from 6 billion km, 1990'],
-        [CLIPS.issLive, 6, 'whip', 'Live from the International Space Station — crewed since 2000', 'LIVE'],
+        [CLIPS.voyager, 2, 'iris', 'Voyager 1 at Saturn, 1980 — then on, out of the Solar System'],
+        [CLIPS.iss, 6, 'whip', 'Five minutes aboard the International Space Station — crewed since 2000', 'ORBIT'],
         ['iss', 2, 'punch', 'International Space Station — 25 years of continuous presence'],
         [CLIPS.falcon, 4, 'flash', 'Falcon Heavy — two boosters land together, 6 February 2018', 'LAND'],
         ['falcon', 1, 'glitch'], ['web', 0.5, 'cut'], ['netmap', 0.5, 'invert']
@@ -330,5 +356,5 @@ window.FILM_SCRIPT = (function () {
   ];
 
   void Y;
-  return { TIMING, IMAGES, CLIPS, CHAPTERS, TAGS, PRELOAD_LINES, urlFor };
+  return { TIMING, IMAGES, CLIPS, CHAPTERS, TAGS, PRELOAD_LINES, urlFor, clipUrl, clipPoster };
 })();

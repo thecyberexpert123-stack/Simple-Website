@@ -58,7 +58,7 @@ if (!S) fail('window.FILM_SCRIPT not defined'); else {
       const [media, beats, tr] = sh; shots++;
       if (!(beats > 0)) fail(`chapter ${ch.id} shot ${si}: beats must be > 0 (got ${beats})`);
       if (typeof media === 'string') { if (!S.IMAGES[media]) fail(`chapter ${ch.id} shot ${si}: unknown still "${media}"`); used.add(media); }
-      else if (media && media.yt) { const ck = clipKeys.find((k) => S.CLIPS[k] === media); if (!ck) fail(`chapter ${ch.id} shot ${si}: clip object not in CLIPS`); else usedClips.add(ck); if (!S.IMAGES[media.fallback]) fail(`clip ${ck}: fallback still "${media.fallback}" missing`); else used.add(media.fallback); }
+      else if (media && media.file) { const ck = clipKeys.find((k) => S.CLIPS[k] === media); if (!ck) fail(`chapter ${ch.id} shot ${si}: clip object not in CLIPS`); else usedClips.add(ck); if (!S.IMAGES[media.fallback]) fail(`clip ${ck}: fallback still "${media.fallback}" missing`); else used.add(media.fallback); }
       else if (!(media && media.mode)) fail(`chapter ${ch.id} shot ${si}: unrecognised media`);
       transitions.set(tr, (transitions.get(tr) || 0) + 1);
       sum += beats;
@@ -70,6 +70,16 @@ if (!S) fail('window.FILM_SCRIPT not defined'); else {
   ['milky', 'pillars', 'aldrin', 'earthrise'].forEach((k) => used.add(k)); // gate backdrop
   const unused = imgKeys.filter((k) => !used.has(k)); if (unused.length) warn(`unused stills: ${unused.join(', ')}`);
   const unusedC = clipKeys.filter((k) => !usedClips.has(k)); if (unusedC.length) warn(`unused clips: ${unusedC.join(', ')}`);
+  let badClip = 0;
+  for (const k of clipKeys) {
+    const c = S.CLIPS[k];
+    if (!c.file || !/^[0-9a-f]{2}$/.test(c.h || '') || !Array.isArray(c.q) || !c.q.length || !c.title || !c.license) { fail(`clip ${k}: needs file, h (md5 prefix), q[], title, license`); badClip++; continue; }
+    if (!(c.len > 0) || c.start < 0) { fail(`clip ${k}: bad start/len`); badClip++; }
+    const hi = S.clipUrl(c, 1080), lo = S.clipUrl(c, 480);
+    if (!/^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\//.test(hi) || !/\.(webm|ogv|mov|mp4)$/.test(hi)) { fail(`clip ${k}: odd URL ${hi}`); badClip++; }
+    if (/\.(\d+)p\.vp9\.webm$/.test(lo) && +RegExp.$1 > 480) { fail(`clip ${k}: 480p request resolved to ${RegExp.$1}p`); badClip++; }
+  }
+  if (!badClip) ok(`${clipKeys.length} clips are native Commons files (no third-party player)`);
   // URLs
   let urlBad = 0;
   for (const k of imgKeys) { const d = S.IMAGES[k]; for (const w of [1280, 1920, 2560, 3840]) { const u = S.urlFor(d, w); if (/\.png\.png|\.jpe?g\.jpe?g/i.test(u)) { fail(`${k}: doubled extension in ${u}`); urlBad++; } if (w < d.w && !/\/thumb\//.test(u)) { fail(`${k}: width ${w} < original ${d.w} but URL is not a thumb`); urlBad++; } if (w >= d.w && /\/thumb\//.test(u)) { fail(`${k}: width ${w} ≥ original ${d.w} but URL is a thumb (upscaling)`); urlBad++; } } }
@@ -91,14 +101,14 @@ const scripts = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
 const links = [...html.matchAll(/<link[^>]+href="(css\/[^"]+)"/g)].map((m) => m[1]);
 for (const s of scripts) if (!exists(s)) fail(`script ${s} referenced but missing`);
 for (const c of links) if (!exists(c)) fail(`stylesheet ${c} referenced but missing`);
-const order = ['js/vendor/gsap.min.js', 'js/data.js', 'js/app.js', 'js/motion.js', 'js/film-script.js', 'js/glx.js', 'js/film.js'];
+const order = ['js/vendor/gsap.min.js', 'js/data.js', 'js/film-script.js', 'js/app.js', 'js/motion.js', 'js/glx.js', 'js/film.js'];
 const idx = order.map((f) => scripts.indexOf(f));
 if (idx.some((i) => i < 0)) fail(`expected scripts missing from index.html: ${order.filter((f, i) => idx[i] < 0).join(', ')}`);
 else if (idx.some((v, i) => i && v < idx[i - 1])) fail(`script order should be ${order.join(' → ')}`);
 else ok(`${scripts.length} scripts, ${links.length} stylesheets, correct order`);
 for (const f of fs.readdirSync(path.join(ROOT, 'js')).filter((f) => f.endsWith('.js'))) if (!scripts.includes('js/' + f)) warn(`js/${f} exists but index.html does not load it`);
-for (const id of ['film', 'stage', 'slots', 'fgate', 'fgate-src', 'yt-host', 'hero-title', 'nav', 'cards', 'modal']) if (!new RegExp(`id="${id}"`).test(html)) fail(`#${id} missing from index.html`);
-if (!/id="yt-host"/.test(html.split('id="film"')[1]?.split(/<\/div>\s*<!-- \/film -->|<nav /)[0] || '') ) ok('#yt-host lives outside #film (soundtrack survives the hand-off)');
+for (const id of ['film', 'stage', 'slots', 'fgate', 'fgate-src', 'hero-title', 'nav', 'cards', 'modal']) if (!new RegExp(`id="${id}"`).test(html)) fail(`#${id} missing from index.html`);
+if (/youtube(-nocookie)?\.com\/(embed|iframe_api)/.test(html + fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8') + fs.readFileSync(path.join(ROOT, 'js/film.js'), 'utf8'))) fail('a YouTube player embed is still referenced'); else ok('no third-party video player (all clips are native <video>)');
 
 /* ---------- 4. media manifest ---------- */
 section('media/');

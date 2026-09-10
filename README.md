@@ -19,7 +19,7 @@ An interactive, single-page web monument to human achievement. No frameworks, no
 | **Voices** | Sagan, Armstrong, Curie, Kennedy, Newton, Mandela, Berners-Lee, Einstein. |
 | **Finale** | Light a star with your name (stored only in your browser). Share. Begin again. |
 
-All videos are embedded from their official publishers via `youtube-nocookie.com` and remain their property.
+There is no third-party video player anywhere on the site. Archival footage (NASA, JPL, ESO, NOAA, the U.S. National Archives) is played from public-domain / Creative Commons files on Wikimedia Commons in a plain `<video>` element; the handful of items whose only source is a publisher's YouTube upload (WHO, CERN, LLNL, MIT, DeepMind, TED) are honest links that open on YouTube in a new tab.
 
 ## Host it on GitHub Pages
 
@@ -42,7 +42,7 @@ Use `node tools/serve.js 8080 --host` to expose it on your LAN (binds `0.0.0.0`)
 
 Why a bespoke server rather than `python3 -m http.server`? Browsers **seek** inside media with HTTP `Range` requests. Python's server (and many one-liners) doesn't support them, so a locally bundled soundtrack refuses to jump to `?t=90`, `[`/`]` seeks stall, and clip `<video>` elements start slow. `tools/serve.js` answers `206 Partial Content`, sends ETags, disables caching for HTML/CSS/JS while you edit, and adds permissive CORS. Any static host that supports Range (GitHub Pages does) is fine in production.
 
-Opening `index.html` straight from disk also works for a quick look, but YouTube embeds and the local media path need a real `http://` origin.
+Opening `index.html` straight from disk also works for a quick look, but the local media path and the seekable soundtrack need a real `http://` origin.
 
 ## Structure
 
@@ -89,9 +89,9 @@ Respects `prefers-reduced-motion`, keyboard-navigable (Esc closes the modal), se
 
 ## The opening film
 
-Before the monument, the site plays a ~2¾-minute film: eleven chapters and 106 cuts through 13.8 billion years, edited live in the browser to the beat of *FUNK CONTRA (Extended · Slowed)* — Dj Samir, Nulteex, Zericxxn — streamed from YouTube via the IFrame API (nothing is re-hosted). Archival stills come from Wikimedia Commons at 1280 / 1920 / 2560 / 3840 px — chosen from the screen's physical pixels so a picture is never shown larger than its own resolution; originals under 1500 px are shown at their own size on a soft backdrop instead of being stretched (credits in the HUD and in `js/film-script.js`); eleven clips are official NASA / CERN / LLNL / Smithsonian / SpaceX uploads embedded muted. Transitions (punch, whip, iris, slice, shutter, spin, zoom-blur, burn, rise/fall, glitch, strobe, flicker) land on beats; kinetic words slam on downbeats; the particle cosmos kicks on every beat; a year odometer runs down the right edge.
+Before the monument, the site plays a ~2¾-minute film: eleven chapters and 106 cuts through 13.8 billion years, edited live in the browser to the beat of *FUNK CONTRA (Extended · Slowed)* — Dj Samir, Nulteex, Zericxxn — played from `media/audio/soundtrack.m4a` (see *Local media*). Archival stills come from Wikimedia Commons at 1280 / 1920 / 2560 / 3840 px — chosen from the screen's physical pixels so a picture is never shown larger than its own resolution; originals under 1500 px are shown at their own size on a soft backdrop instead of being stretched (credits in the HUD and in `js/film-script.js`); ten clips are public-domain / CC video files from Wikimedia Commons (Wright 1908, Apollo 11, Earthrise, Voyager at Saturn, Falcon Heavy, Perseverance EDL, the ISS time-lapse, Starship from GOES, Webb, M87) streamed muted straight into `<video>` elements — no YouTube player, so nothing can come up “unavailable”, in-points are exact, and the WebGL cuts can sample the video frames too. Transitions (punch, whip, iris, slice, shutter, spin, zoom-blur, burn, rise/fall, glitch, strobe, flicker) land on beats; kinetic words slam on downbeats; the particle cosmos kicks on every beat; a year odometer runs down the right edge.
 
-If the stream cannot start (blocked network, autoplay policy), the film keeps its cuts on a local clock and the site's own generative ambient score plays instead; tapping anywhere retries the soundtrack.
+If the soundtrack file is missing or cannot start (not bundled yet, autoplay policy), the film keeps its cuts on a local clock and the site's own generative ambient score plays instead; tapping anywhere retries the soundtrack. A clip that fails to load falls back to its Ken Burns still on the same beat.
 
 * `js/film-script.js` — the screenplay: chapters, shots, transitions (all in beats), image credits, tempo.
 * `js/film.js` — the editor: preloader, gate, beat clock, cuts, HUD, hand-off to the monument.
@@ -99,11 +99,11 @@ If the stream cannot start (blocked network, autoplay policy), the film keeps it
 
 ### Local media (recommended)
 
-Streaming from YouTube means buffering, compression and ads-free-but-slow first frames. To bundle everything with the site instead:
+The soundtrack is **not** in the repo (it is commercial music) — fetch it once and the film has its beat-locked track. Clips and stills stream fine from Wikimedia Commons, but bundling them makes first frames instant and removes the last external dependency:
 
 ```bash
-pip install yt-dlp        # or: brew install yt-dlp   /   PowerShell: winget install yt-dlp.yt-dlp
-sudo apt install ffmpeg   # or: brew install ffmpeg   /   PowerShell: winget install Gyan.FFmpeg
+pip install yt-dlp        # soundtrack only — or: brew install yt-dlp   /   PowerShell: winget install yt-dlp.yt-dlp
+sudo apt install ffmpeg   # or: brew install ffmpeg   /   PowerShell: winget install Gyan.FFmpeg  (then reopen the terminal)
 npm run media             # = node tools/fetch-media.js → media/audio, media/clips, media/stills, media/manifest.json
 npm run check             # confirms every file in the manifest exists and is under GitHub's 100 MB limit
 git add media && git commit -m "Bundle film media"
@@ -111,9 +111,9 @@ git add media && git commit -m "Bundle film media"
 
 `npm run media:audio`, `media:clips`, `media:stills` fetch one kind at a time.
 
-The script downloads the track as 160 kbps AAC, cuts each clip to the exact window the film uses and re-encodes it as a lean 1080p H.264 MP4 (muted, fast-start), and saves every still at up to 3840 px. `film.js` reads `media/manifest.json` at boot: the soundtrack becomes a plain `<audio>` element (sample-accurate clock, no iframe), clips become `<video>` elements (instant cuts, full resolution), stills load from the repo. Anything not in the manifest still streams, so partial fetches are fine (`--audio`, `--clips`, `--stills`, `--clip apollo`, `--max 2560`).
+The script downloads the track as 160 kbps AAC, pulls each clip straight from Wikimedia Commons (no yt-dlp needed for clips), cuts it to the exact window the film uses and re-encodes it as a lean ≤1080p H.264 MP4 (muted, fast-start — Safari-friendly), and saves every still at up to 3840 px. `film.js` reads `media/manifest.json` at boot: the soundtrack is a plain `<audio>` element (sample-accurate clock), clips are `<video>` elements, stills load from the repo. Anything not in the manifest streams from Commons, so partial fetches are fine (`--audio`, `--clips`, `--stills`, `--clip apollo`, `--max 2560`).
 
-Note on rights: the archival clips and stills are public domain / CC and safe to redistribute; the soundtrack is commercial music — bundle it only if you hold the rights, otherwise leave `media/audio/` out and it streams.
+Note on rights: the archival clips and stills are public domain / CC and safe to redistribute; the soundtrack is commercial music — bundle it only if you hold the rights, otherwise leave `media/audio/` out and the film plays its own ambient score.
 
 ### Tuning the beat grid
 
@@ -121,4 +121,4 @@ Tempo and first-downbeat offset live in `TIMING` at the top of `js/film-script.j
 
 Other switches: `?nofilm=1` (or any `#section` link) skips straight to the monument; `?t=90` starts the film at 90 s; `Esc` skips at any time.
 
-If YouTube is unreachable the film still plays on a local clock — silently, with the same cuts.
+`?gl=0` disables the WebGL cuts (CSS transitions only).

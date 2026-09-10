@@ -12,6 +12,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2305060a'/%3E%3Ccircle cx='32' cy='32' r='9' fill='%23e8c98a'/%3E%3Ccircle cx='32' cy='32' r='22' fill='none' stroke='%23e8c98a' stroke-opacity='.5' stroke-width='1.5'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://upload.wikimedia.org" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500&family=Syne:wght@700;800&family=Space+Mono&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/film.css">
@@ -65,7 +66,7 @@
             <span class="fbtn-label">Enter without sound</span>
           </button>
         </div>
-        <p class="fgate-note mono">Soundtrack: FUNK CONTRA (Extended · Slowed) — Dj Samir, Nulteex, Zericxxn, <span id="fgate-src">streamed from YouTube</span>.<br>
+        <p class="fgate-note mono">Soundtrack: FUNK CONTRA (Extended · Slowed) — Dj Samir, Nulteex, Zericxxn, <span id="fgate-src">bundled with the site</span>.<br>
           Prefer to skip the film? <a href="#" id="skip-film">Go straight to the monument</a>.</p>
         <p class="fgate-hint mono">Please rotate your device for the widescreen cut.</p>
       </div>
@@ -101,7 +102,6 @@
     </div>
 
   </div>
-  <div id="yt-host" aria-hidden="true"><div id="yt-player"></div></div>
 
   <!-- Navigation -->
   <div id="progress" aria-hidden="true"></div>
@@ -365,11 +365,11 @@
   <script src="js/vendor/SplitText.min.js"></script>
   <script src="js/vendor/lenis.min.js"></script>
   <script src="js/data.js"></script>
+  <script src="js/film-script.js"></script>
   <script src="js/cosmos.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/app.js"></script>
   <script src="js/motion.js"></script>
-  <script src="js/film-script.js"></script>
   <script src="js/glx.js"></script>
   <script src="js/film.js"></script>
 </body>

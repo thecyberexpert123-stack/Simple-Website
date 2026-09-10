@@ -35,7 +35,7 @@
   /* ---------------------------------------------------------------- */
   function startLenis() {
     if (lenis || reduced || !window.Lenis) return;
-    lenis = new Lenis({ lerp: 0.085, wheelMultiplier: 0.95, touchMultiplier: 1.4, smoothWheel: true, syncTouch: false, anchors: false, prevent: (n) => n.closest && (n.closest('#modal') || n.closest('.nav-links.open')) });
+    lenis = new Lenis({ lerp: 0.1, wheelMultiplier: 0.9, touchMultiplier: 1.4, smoothWheel: true, syncTouch: false, anchors: false, prevent: (n) => n.closest && (n.closest('#modal') || n.closest('.nav-links.open')) });
     lenis.on('scroll', () => window.ScrollTrigger && ScrollTrigger.update());
     gsap.ticker.add((t) => lenis.raf(t * 1000));
     gsap.ticker.lagSmoothing(0);
