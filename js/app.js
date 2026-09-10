@@ -203,7 +203,7 @@
   /* Video sources. Where an archival clip exists on Wikimedia Commons we play it ourselves; anything else is an
      honest link out to the publisher — there is no embedded YouTube player anywhere on the site. */
   const clipFor = (v) => (v.clip && window.FILM_SCRIPT?.CLIPS?.[v.clip]) || null;
-  const posterFor = (v) => { const c = clipFor(v); if (c && window.FILM_SCRIPT) { const st = window.FILM_SCRIPT.IMAGES[c.fallback]; return window.FILM_LOCAL?.clips?.[v.clip]?.poster || (st ? window.FILM_SCRIPT.urlFor(st, 1600) : window.FILM_SCRIPT.clipPoster(c, 1280)); } return v.id ? ytThumb(v.id) : ''; };
+  const posterFor = (v) => { const c = clipFor(v); if (c && window.FILM_SCRIPT) { const st = window.FILM_SCRIPT.IMAGES[c.fallback]; const w = (devicePixelRatio || 1) > 1.5 ? 2560 : 1600; return window.FILM_LOCAL?.clips?.[v.clip]?.poster || (st ? window.FILM_SCRIPT.urlFor(st, w) : window.FILM_SCRIPT.clipPoster(c, w > 1600 ? 1920 : 1280)); } return v.id ? ytThumb(v.id) : ''; };
   function extCard(v) {
     const a = el('a', 'ext-card'); a.href = `https://www.youtube.com/watch?v=${v.id}`; a.target = '_blank'; a.rel = 'noopener';
     a.innerHTML = `<img src="${ytThumb(v.id)}" alt=""><span class="play">${PLAY_SVG}</span><span class="cap"><b>${esc(v.title)}</b>${esc(v.source)} — opens on YouTube ↗</span>`;
@@ -226,7 +226,8 @@
         // native player: the full public-domain / CC file from Wikimedia Commons, no third-party embed
         const vid = document.createElement('video'); vid.controls = true; vid.autoplay = true; vid.playsInline = true; vid.preload = 'metadata'; vid.setAttribute('title', v.title);
         vid.poster = posterFor(v); const S = window.FILM_SCRIPT; const local = window.FILM_LOCAL?.clips?.[v.clip];
-        vid.src = S.clipUrl(clip, Math.min(1080, Math.round(innerHeight * Math.min(2, devicePixelRatio || 1)) > 900 ? 1080 : 480));
+        const px = Math.round(Math.min(innerWidth, 1200) * Math.min(3, devicePixelRatio || 1)); const slow = navigator.connection && (navigator.connection.saveData || /(^|[^0-9])2g/.test(navigator.connection.effectiveType || ''));
+        vid.src = S.clipUrl(clip, slow ? 480 : px >= 1100 ? 1080 : 480);
         vid.addEventListener('error', () => { if (local && vid.src !== local.file) { vid.src = local.file; vid.load(); return; } mMedia.innerHTML = ''; mMedia.appendChild(extCard(v)); }, { once: true });
         vid.addEventListener('play', () => Ambient.duck(true)); vid.addEventListener('pause', () => Ambient.duck(false));
         mMedia.appendChild(vid);
@@ -240,6 +241,7 @@
   }
   function closeModal() {
     modal.classList.remove('open'); document.body.classList.remove('locked');
+    mMedia.querySelectorAll('video').forEach((v) => { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (e) { /* noop */ } });
     setTimeout(() => { modal.hidden = true; mMedia.innerHTML = ''; }, 500);
     Ambient.duck(false); lastFocus?.focus?.();
   }

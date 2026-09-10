@@ -6,8 +6,8 @@
    Timing model
    ------------
    All durations are in BEATS. The film is laid out on the beat grid of
-   the soundtrack (FUNK CONTRA — Extended · Slowed, streamed via
-   YouTube). Tempo and first-beat offset are tunable in TIMING below,
+   the soundtrack (ZAI JIAN — Super Slowed, NTRIX, 95 BPM, bundled by
+   tools/fetch_media.py). Tempo and first-beat offset are tunable in TIMING below,
    via ?bpm=&offset= in the URL, or with the in-film tap-tempo tool
    (?debug=1 → press T on the beat, O on a downbeat).
 
@@ -23,11 +23,11 @@ window.FILM_SCRIPT = (function () {
   'use strict';
 
   const TIMING = {
-    videoId: 'kkq8Uz_CYmI',   // FUNK CONTRA - (Extended) - Slowed · 4:04
-    trackTitle: 'FUNK CONTRA — Extended · Slowed',
-    artist: 'Dj Samir, Nulteex, Zericxxn',
-    bpm: 96.7,                // estimate — see README "Tuning the beat grid"
-    offset: 0.12,             // seconds from stream start to first downbeat
+    videoId: 'p6ayH7JvHaE',   // ZAI JIAN (Super Slowed) — NTRIX · 2:29
+    trackTitle: 'ZAI JIAN — Super Slowed',
+    artist: 'NTRIX',
+    bpm: 95,                  // exact: the track sits on a 95 BPM grid (0.6316 s per beat, 2.526 s per bar)
+    offset: 0.0,              // seconds from file start to the first downbeat (tune with ?debug=1 → O)
     minBpm: 60, maxBpm: 160
   };
 
@@ -82,6 +82,8 @@ window.FILM_SCRIPT = (function () {
     eniac: { file: 'Eniac.jpg', h: '4e', w: 1340, credit: 'ENIAC, 1946 — U.S. Army', license: 'Public domain' },
     higgs: { file: 'CMS_Higgs-event.jpg', h: '1c', w: 1104, credit: 'Simulated Higgs event, CMS — CERN', license: 'Public domain' },
     nif: { file: "National_Ignition_Facility's_target_chamber.jpg", h: '7c', w: 4256, credit: 'National Ignition Facility target chamber — LLNL', license: 'CC BY-SA 3.0' },
+    quantum: { file: 'IBM_Q_System_One_(Fraunhofer)_installation.jpg', h: 'ae', w: 5472, credit: 'IBM Quantum System One, Ehningen, 2021 — IBM Research', license: 'CC BY 2.0' },
+    artemis: { file: 'Artemis_I_Launch_(NHQ202211160009).jpg', h: 'ea', w: 2924, h_px: 4048, credit: 'Artemis I lifts off — 16 November 2022 — NASA / Joel Kowsky', license: 'Public domain' },
     // space
     sputnik: { file: 'Sputnik_asm.jpg', h: 'be', w: 1094, credit: 'Sputnik 1, 1957 — NASA', license: 'Public domain' },
     gagarin: { file: 'Yuri_Gagarin_(1961)_-_Restoration.jpg', h: 'e5', w: 2213, credit: 'Yuri Gagarin, 1961', license: 'Public domain' },
@@ -144,6 +146,7 @@ window.FILM_SCRIPT = (function () {
     starship: { file: 'Starship_Sixth_Flight_Test_From_SpaceX_(CIRA_2024-11-19_-_nolabels).webm', h: 'f5', w: 1920, hgt: 1080, q: [240, 480, 1080], start: 0, len: 5.4, fallback: 'falcon', yt: 'hI9HQfCAw64', title: "Starship's exhaust plume seen from GOES, 19 Nov 2024 — CSU/CIRA & NOAA", license: 'Public domain' },
     webb: { file: 'Webb_First_Images_Promos_(SVS14178_-_WEBB_FIRST_IMAGES_PROMO1).webm', h: 'b8', w: 1920, hgt: 1080, q: [240, 480, 1080], start: 3, len: 8, fallback: 'webb', yt: 'nmMRMIE3MGw', title: 'Webb first images — NASA SVS', license: 'Public domain' },
     blackhole: { file: 'Zooming_in_to_the_Heart_of_Messier_87.webm', h: '70', w: 3840, hgt: 2160, q: [240, 480, 1080], start: 38, len: 10, fallback: 'bh', yt: 'Dr20f19czeE', title: 'Zooming in to the heart of M87 — ESO / EHT Collaboration', license: 'CC BY 4.0' },
+    artemis: { file: 'Artemis_I_Launches_to_the_Moon_(Official_NASA_Recap)_(1127803436312).webm', h: '16', w: 1280, hgt: 720, q: [240, 480, 0], start: 30, len: 8, fallback: 'artemis', title: 'Artemis I launches to the Moon — NASA recap, 2022', license: 'Public domain' },
     voyager: { file: 'JPL-19801112-VOYAGEf-0001-AVC2002151_Voyager_1_at_Saturn.webm', h: '22', w: 960, hgt: 720, q: [240, 480, 0], start: 20, len: 8, fallback: 'pbd', yt: 'D4m3BOtAaj0', title: 'Voyager 1 at Saturn, 1980 — NASA / JPL', license: 'Public domain' }
   };
   /* Direct Commons URL for a clip at the best transcode ≤ `maxH` px tall. */
@@ -173,18 +176,18 @@ window.FILM_SCRIPT = (function () {
   const Y = (n) => n; // readability
   const CHAPTERS = [
     {
-      id: 'open', kind: 'open', mode: 'stars', bars: 4, energy: 0.1, years: [-13.8e9, -13.8e9],
+      id: 'open', kind: 'open', mode: 'stars', bars: 3, energy: 0.1, years: [-13.8e9, -13.8e9],
       label: 'HUMANITY — THE FILM', title: '', code: 'P-000',
       lines: [
         [0, '// 13,800,000,000 years'],
         [3, '// one species that looked up'],
         [6, '// RUNTIME seconds. cut to the beat.'],
-        [9, '// headphones on. just watch.']
+        [8, '// headphones on. just watch.']
       ],
       shots: [
-        [{ mode: 'stars' }, 8, 'fade'],
+        [{ mode: 'stars' }, 6, 'fade'],
         ['milky', 4, 'fade', 'The Milky Way — 100 billion suns, one of which is ours'],
-        ['milky', 4, 'cut']
+        ['milky', 2, 'cut']
       ]
     },
     {
@@ -202,7 +205,7 @@ window.FILM_SCRIPT = (function () {
       ]
     },
     {
-      id: 'fire', kind: 'chapter', num: 1, mode: 'embers', bars: 6, energy: 0.5, years: [-1.5e6, -3000],
+      id: 'fire', kind: 'chapter', num: 1, mode: 'embers', bars: 5, energy: 0.5, years: [-1.5e6, -3000],
       label: 'CHAPTER 01', title: 'FIRE & ART', when: '1,500,000 – 5,000 years ago', code: 'P-002',
       line: 'Warmth. Light. Cooked food. Then a hand on a cave wall: the mind turns outward.',
       shots: [
@@ -210,38 +213,37 @@ window.FILM_SCRIPT = (function () {
         ['hands', 4, 'iris', 'Cueva de las Manos — hands stencilled 9,000 years ago', 'HANDS'],
         ['lascaux', 4, 'whip', 'Lascaux — painted by torchlight, 17,000 years ago', 'ART'],
         ['hands', 1, 'cut'], ['lascaux', 1, 'cut'], ['hands', 0.5, 'cut'], ['lascaux', 0.5, 'cut'], ['hands', 0.5, 'cut'], ['lascaux', 0.5, 'glitch'],
-        ['stonehenge', 4, 'rise', 'Stonehenge — 3000 BCE, aligned to the solstice', 'SKY'],
-        ['stonehenge', 4, 'cut']
+        ['stonehenge', 4, 'rise', 'Stonehenge — 3000 BCE, aligned to the solstice', 'SKY']
       ]
     },
     {
-      id: 'word', kind: 'chapter', num: 2, mode: 'ink', bars: 6, energy: 0.55, years: [-3100, 1455],
+      id: 'word', kind: 'chapter', num: 2, mode: 'ink', bars: 5, energy: 0.55, years: [-3100, 1455],
       label: 'CHAPTER 02', title: 'THE WORD', when: '3100 BCE – 1455 CE', code: 'P-003',
       line: 'Memory escapes the skull. Ideas outlive the people who had them.',
       shots: [
         ['cune', 4, 'slice', 'Cuneiform — a barley account, Sumer, c. 3100 BCE', 'WRITE'],
-        ['giza', 4, 'zoomout', 'Giza — 2560 BCE, 2.3 million blocks', 'BUILD'],
+        ['giza', 3, 'zoomout', 'Giza — 2560 BCE, 2.3 million blocks', 'BUILD'],
         ['parthenon', 2, 'whipL', 'The Parthenon — 438 BCE'],
         ['colosseum', 2, 'whip', 'The Colosseum — 80 CE'],
         ['rosetta', 3, 'shutter', 'The Rosetta Stone — one decree, three scripts', 'READ'],
         ['rosetta', 1, 'invert'],
-        ['hokusai', 4, 'wipe', 'Hokusai — The Great Wave, c. 1831', 'SEE'],
-        ['press', 2, 'punch', 'The press — Mainz, 1440s'],
+        ['hokusai', 2, 'wipe', 'Hokusai — The Great Wave, c. 1831', 'SEE'],
+        ['press', 1, 'punch', 'The press — Mainz, 1440s'],
         ['gutenberg', 1, 'cut', 'Gutenberg Bible, 1455 — ideas become cheap'],
         ['press', 0.5, 'cut'], ['gutenberg', 0.5, 'flicker', '', 'PRINT']
       ]
     },
     {
-      id: 'reason', kind: 'chapter', num: 3, mode: 'orbit', bars: 6, energy: 0.6, years: [1490, 1921],
+      id: 'reason', kind: 'chapter', num: 3, mode: 'orbit', bars: 5, energy: 0.6, years: [1490, 1921],
       label: 'CHAPTER 03', title: 'REASON', when: '1490 – 1921', code: 'P-004',
       line: 'The universe becomes calculable.',
       shots: [
-        ['vitruv', 4, 'iris', 'Leonardo — Vitruvian Man, c. 1490', 'MEASURE'],
-        ['galileo', 4, 'spin', 'Galileo — the Moon has mountains, 1610', 'LOOK'],
+        ['vitruv', 3, 'iris', 'Leonardo — Vitruvian Man, c. 1490', 'MEASURE'],
+        ['galileo', 3, 'spin', 'Galileo — the Moon has mountains, 1610', 'LOOK'],
         ['newton', 2, 'punch', 'Newton — William Blake, 1795'],
         ['principia', 2, 'slice', 'Principia Mathematica, 1687 — F = ma', 'F = ma'],
-        ['curie', 4, 'whipL', 'Marie Curie — two Nobel Prizes, two sciences', 'RADIUM'],
-        ['einstein', 4, 'zoomout', 'Einstein, 1921', 'E = mc²'],
+        ['curie', 3, 'whipL', 'Marie Curie — two Nobel Prizes, two sciences', 'RADIUM'],
+        ['einstein', 3, 'zoomout', 'Einstein, 1921', 'E = mc²'],
         ['einstein', 1, 'glitch'], ['galileo', 0.5, 'cut'], ['newton', 0.5, 'cut'], ['curie', 1, 'invert'],
         ['einstein', 1, 'punch']
       ]
@@ -263,7 +265,7 @@ window.FILM_SCRIPT = (function () {
       ]
     },
     {
-      id: 'atom', kind: 'chapter', num: 5, mode: 'atom', bars: 6, energy: 0.9, years: [1945, 2022],
+      id: 'atom', kind: 'chapter', num: 5, mode: 'atom', bars: 5, energy: 0.9, years: [1945, 2022],
       label: 'CHAPTER 05', title: 'THE ATOM', when: '1945 – 2022', code: 'P-006',
       line: 'We learn what everything is made of — and what that knowledge costs.',
       shots: [
@@ -271,17 +273,17 @@ window.FILM_SCRIPT = (function () {
         ['trinityB', 0.5, 'flash', 'Trinity, 16 July 1945 — 0.016 seconds after detonation'],
         [{ mode: 'atom' }, 0.5, 'invert'],
         ['trinityB', 0.5, 'cut'], [{ mode: 'atom' }, 0.5, 'cut'],
-        ['trinity', 4, 'drop', 'Trinity — the first nuclear explosion', 'ATOM'],
-        ['vaccine', 4, 'wipe', 'Smallpox — the first disease we erased, 1980', 'CURE'],
-        ['transistor', 3, 'punch', 'The transistor — Bell Labs, 1947', 'SWITCH'],
+        ['trinity', 3, 'drop', 'Trinity — the first nuclear explosion', 'ATOM'],
+        ['vaccine', 3, 'wipe', 'Smallpox — the first disease we erased, 1980', 'CURE'],
+        ['transistor', 2, 'punch', 'The transistor — Bell Labs, 1947', 'SWITCH'],
         ['eniac', 1, 'cut', 'ENIAC, 1946 — 18,000 vacuum tubes'],
         ['eniac', 2, 'shutter', 'ENIAC, 1946 — 18,000 vacuum tubes', 'COMPUTE'],
-        ['higgs', 4, 'glitch', 'The Higgs boson — CERN, 4 July 2012', 'HIGGS'],
+        ['higgs', 3, 'glitch', 'The Higgs boson — CERN, 4 July 2012', 'HIGGS'],
         ['nif', 2, 'burn', 'Fusion ignition — Lawrence Livermore, 5 December 2022', 'IGNITE']
       ]
     },
     {
-      id: 'moon', kind: 'chapter', num: 6, mode: 'orbit', bars: 8, energy: 1, years: [1957, 1972],
+      id: 'moon', kind: 'chapter', num: 6, mode: 'orbit', bars: 7, energy: 1, years: [1957, 1972],
       label: 'CHAPTER 06', title: 'LEAVING THE CRADLE', when: '1957 – 1972', code: 'P-007',
       line: 'Life leaves its cradle for the first time in four billion years.',
       shots: [
@@ -289,13 +291,13 @@ window.FILM_SCRIPT = (function () {
         ['gagarin', 2, 'punch', 'Yuri Gagarin — 12 April 1961 — the first human in space', 'ПОЕХАЛИ!'],
         ['launch', 3, 'drop', 'Apollo 11 lifts off — 16 July 1969', 'LIFT'],
         ['launch', 0.5, 'punch'], ['launch', 0.5, 'punch'],
-        [CLIPS.earthrise, 6, 'fade', 'Earthrise — Apollo 8, Christmas Eve 1968', 'HOME'],
+        [CLIPS.earthrise, 5, 'fade', 'Earthrise — Apollo 8, Christmas Eve 1968', 'HOME'],
         ['eagle', 2, 'whip', 'Eagle in lunar orbit — 20 July 1969'],
-        [CLIPS.apollo, 8, 'glitch', '20 July 1969 — "That\'s one small step for a man…"', 'STEP'],
+        [CLIPS.apollo, 7, 'glitch', '20 July 1969 — "That\'s one small step for a man…"', 'STEP'],
         ['armstrong', 1, 'cut', 'Neil Armstrong'], ['aldrin', 1, 'cut', 'Buzz Aldrin'],
-        ['aldrin', 2, 'punch', 'Buzz Aldrin, photographed by Neil Armstrong'],
+        ['aldrin', 1, 'punch', 'Buzz Aldrin, photographed by Neil Armstrong'],
         ['boot', 2, 'zoomin', 'A bootprint that will last a million years', 'ONE'],
-        ['cernan', 2, 'fall', 'Gene Cernan, Apollo 17, 1972 — the last footsteps, so far']
+        ['cernan', 1, 'fall', 'Gene Cernan, Apollo 17, 1972 — the last footsteps, so far']
       ]
     },
     {
@@ -315,35 +317,37 @@ window.FILM_SCRIPT = (function () {
       ]
     },
     {
-      id: 'universe', kind: 'chapter', num: 8, mode: 'galaxy', bars: 8, energy: 0.9, years: [1990, 2022],
+      id: 'universe', kind: 'chapter', num: 8, mode: 'galaxy', bars: 7, energy: 0.9, years: [1990, 2022],
       label: 'CHAPTER 08', title: 'SEEING THE UNIVERSE', when: '1990 – 2022', code: 'P-009',
       line: 'We photograph the unphotographable and read the first light.',
       shots: [
         ['hubble', 2, 'rise', 'Hubble — launched 24 April 1990', 'HUBBLE'],
-        ['udf', 4, 'zoomout', 'Hubble Ultra Deep Field — 11 days staring at nothing', '10,000'],
+        ['udf', 3, 'zoomout', 'Hubble Ultra Deep Field — 11 days staring at nothing', '10,000'],
         ['pillars', 2, 'whip', 'Pillars of Creation'],
         ['crab', 2, 'whipL', 'Crab Nebula'],
-        [CLIPS.blackhole, 6, 'iris', 'M87* — the first image of a black hole, 10 April 2019', 'SEE'],
+        [CLIPS.blackhole, 5, 'iris', 'M87* — the first image of a black hole, 10 April 2019', 'SEE'],
         ['bh', 1, 'invert'], ['bhAnat', 1, 'glitch', 'Anatomy of a black hole — ESO'],
-        [CLIPS.mars, 6, 'punch', 'Perseverance touches down on Mars — 18 February 2021', 'MARS'],
+        [CLIPS.mars, 5, 'punch', 'Perseverance touches down on Mars — 18 February 2021', 'MARS'],
         ['curiosity', 2, 'cut', 'Curiosity self-portrait — Mars, 2015'],
-        [CLIPS.webb, 4, 'zoomblur', "Webb's First Deep Field — 12 July 2022, light 13 billion years old", 'FIRST LIGHT'],
+        [CLIPS.webb, 3, 'zoomblur', "Webb's First Deep Field — 12 July 2022, light 13 billion years old", 'FIRST LIGHT'],
         ['webb', 1, 'flicker'], ['marble', 1, 'flash', 'Home.']
       ]
     },
     {
-      id: 'now', kind: 'finale', mode: 'warp', bars: 8, energy: 0.6, years: [2024, new Date().getFullYear()],
+      id: 'now', kind: 'finale', mode: 'warp', bars: 5, energy: 0.6, years: [2022, new Date().getFullYear()],
       label: 'CHAPTER 09', title: 'NOW', when: new Date().getFullYear(), code: 'P-010',
-      line: 'You are here.',
+      line: 'Back to the Moon. Machines that think. You are here.',
       shots: [
-        [CLIPS.starship, 8, 'glitch', 'Starship Flight 5 — a 71-metre booster caught out of the sky, 13 October 2024', 'CATCH'],
-        ['earth17', 8, 'fade', 'Earth from Apollo 17 — everyone you have ever known is in this frame', 'YOU'],
-        [{ mode: 'warp' }, 16, 'burn']
+        [CLIPS.starship, 5, 'glitch', 'Starship — the largest rocket ever flown, seen from orbit, 2024', 'CATCH'],
+        [CLIPS.artemis, 4, 'drop', 'Artemis I — humanity turns back to the Moon, 16 November 2022', 'RETURN'],
+        ['quantum', 2, 'glitch', 'A quantum computer — IBM System One, 2021', 'QUBIT'],
+        ['earth17', 4, 'fade', 'Earth from Apollo 17 — everyone you have ever known is in this frame', 'YOU'],
+        [{ mode: 'warp' }, 5, 'burn']
       ]
     }
   ];
 
-  const TAGS = ['FIRE', 'THE WRITTEN WORD', 'AGRICULTURE', 'MATHEMATICS', 'THE PRINTING PRESS', 'GRAVITY', 'VACCINATION', 'ELECTRICITY', 'FLIGHT', 'RELATIVITY', 'ANTIBIOTICS', 'THE TRANSISTOR', 'THE MOON', 'THE INTERNET', 'THE GENOME', 'GRAVITATIONAL WAVES', 'A BLACK HOLE, PHOTOGRAPHED', 'FIRST LIGHT'];
+  const TAGS = ['FIRE', 'THE WRITTEN WORD', 'AGRICULTURE', 'MATHEMATICS', 'THE PRINTING PRESS', 'GRAVITY', 'VACCINATION', 'ELECTRICITY', 'FLIGHT', 'RELATIVITY', 'ANTIBIOTICS', 'THE TRANSISTOR', 'THE MOON', 'THE INTERNET', 'THE GENOME', 'GRAVITATIONAL WAVES', 'A BLACK HOLE, PHOTOGRAPHED', 'FIRST LIGHT', 'REUSABLE ROCKETS', 'mRNA', 'ALPHAFOLD', 'QUANTUM COMPUTERS', 'ARTEMIS'];
 
   const PRELOAD_LINES = [
     '// waking the cosmos',

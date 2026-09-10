@@ -10,10 +10,12 @@
     "serve": "node tools/serve.js",
     "check": "node tools/check.js",
     "test": "node tools/check.js",
-    "media": "node tools/fetch-media.js",
-    "media:audio": "node tools/fetch-media.js --audio",
-    "media:clips": "node tools/fetch-media.js --clips",
-    "media:stills": "node tools/fetch-media.js --stills"
+    "media": "python tools/fetch_media.py",
+    "media:node": "node tools/fetch-media.js",
+    "media:verify": "python tools/fetch_media.py --verify",
+    "media:audio": "python tools/fetch_media.py --audio",
+    "media:clips": "python tools/fetch_media.py --clips",
+    "media:stills": "python tools/fetch_media.py --stills"
   },
   "engines": {
     "node": ">=18"

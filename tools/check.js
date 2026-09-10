@@ -122,7 +122,7 @@ if (exists('media/manifest.json')) {
   const size = (d) => { let t = 0; if (!fs.existsSync(d)) return 0; for (const f of fs.readdirSync(d)) { const p = path.join(d, f); const st = fs.statSync(p); t += st.isDirectory() ? size(p) : st.size; } return t; };
   const mb = size(path.join(ROOT, 'media')) / 1048576; (mb > 900 ? warn : ok)(`media/ is ${mb.toFixed(1)} MB${mb > 900 ? ' — GitHub recommends repos under 1 GB' : ''}`);
   for (const f of fs.readdirSync(path.join(ROOT, 'media')).flatMap((d) => { const p = path.join(ROOT, 'media', d); return fs.statSync(p).isDirectory() ? fs.readdirSync(p).map((x) => path.join(p, x)) : [p]; })) if (fs.statSync(f).size > 100 * 1048576) fail(`${rel(f)} is over GitHub's 100 MB file limit`);
-} else ok('no manifest — film streams (run node tools/fetch-media.js to bundle)');
+} else ok('no manifest — film streams (run python tools/fetch_media.py to bundle)');
 
 /* ---------- 5. vendor licences ---------- */
 section('js/vendor');

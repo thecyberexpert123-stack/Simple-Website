@@ -2,3 +2,5 @@
 media/.tmp/
 *.part
 *.ytdl
+__pycache__/
+*.pyc

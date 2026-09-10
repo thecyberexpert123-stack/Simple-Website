@@ -60,7 +60,7 @@ js/film.js          the film editor (clock, cuts, camera, HUD)
 js/vendor/          GSAP 3.15 (+ ScrollTrigger, SplitText, CustomEase) and Lenis 1.3 — committed, no build step
 tools/serve.js      zero-dependency dev server (Range/206, ETag, CORS) — `npm run dev`
 tools/check.js      project checker — `npm run check`
-tools/fetch-media.js  bundles the soundtrack, clips and stills locally (see "Local media") — `npm run media`
+tools/fetch_media.py  bundles the soundtrack, clips and stills locally (see "Local media") — `npm run media`
 package.json        npm scripts only; nothing to install
 .github/workflows   GitHub Pages deployment
 ```
@@ -89,7 +89,7 @@ Respects `prefers-reduced-motion`, keyboard-navigable (Esc closes the modal), se
 
 ## The opening film
 
-Before the monument, the site plays a ~2¾-minute film: eleven chapters and 106 cuts through 13.8 billion years, edited live in the browser to the beat of *FUNK CONTRA (Extended · Slowed)* — Dj Samir, Nulteex, Zericxxn — played from `media/audio/soundtrack.m4a` (see *Local media*). Archival stills come from Wikimedia Commons at 1280 / 1920 / 2560 / 3840 px — chosen from the screen's physical pixels so a picture is never shown larger than its own resolution; originals under 1500 px are shown at their own size on a soft backdrop instead of being stretched (credits in the HUD and in `js/film-script.js`); ten clips are public-domain / CC video files from Wikimedia Commons (Wright 1908, Apollo 11, Earthrise, Voyager at Saturn, Falcon Heavy, Perseverance EDL, the ISS time-lapse, Starship from GOES, Webb, M87) streamed muted straight into `<video>` elements — no YouTube player, so nothing can come up “unavailable”, in-points are exact, and the WebGL cuts can sample the video frames too. Transitions (punch, whip, iris, slice, shutter, spin, zoom-blur, burn, rise/fall, glitch, strobe, flicker) land on beats; kinetic words slam on downbeats; the particle cosmos kicks on every beat; a year odometer runs down the right edge.
+Before the monument, the site plays a ~2½-minute film: eleven chapters and 107 cuts through 13.8 billion years, edited live in the browser on an exact **95 BPM** grid to *ZAI JIAN (Super Slowed)* — NTRIX — played from `media/audio/soundtrack.m4a` (see *Local media*). Archival stills come from Wikimedia Commons at 1280 / 1920 / 2560 / 3840 px — chosen from the screen's physical pixels so a picture is never shown larger than its own resolution; originals under 1500 px are shown at their own size on a soft backdrop instead of being stretched (credits in the HUD and in `js/film-script.js`); eleven clips are public-domain / CC video files from Wikimedia Commons (Wright 1908, Apollo 11, Earthrise, Voyager at Saturn, Falcon Heavy, Perseverance EDL, the ISS time-lapse, Starship from GOES, Webb, M87, Artemis I) streamed muted straight into `<video>` elements — no YouTube player, so nothing can come up “unavailable”, in-points are exact, and the WebGL cuts can sample the video frames too. Transitions (punch, whip, iris, slice, shutter, spin, zoom-blur, burn, rise/fall, glitch, strobe, flicker) land on beats; kinetic words slam on downbeats; the particle cosmos kicks on every beat; a year odometer runs down the right edge.
 
 If the soundtrack file is missing or cannot start (not bundled yet, autoplay policy), the film keeps its cuts on a local clock and the site's own generative ambient score plays instead; tapping anywhere retries the soundtrack. A clip that fails to load falls back to its Ken Burns still on the same beat.
 
@@ -99,25 +99,27 @@ If the soundtrack file is missing or cannot start (not bundled yet, autoplay pol
 
 ### Local media (recommended)
 
-The soundtrack is **not** in the repo (it is commercial music) — fetch it once and the film has its beat-locked track. Clips and stills stream fine from Wikimedia Commons, but bundling them makes first frames instant and removes the last external dependency:
+The soundtrack is **not** in the repo (it is commercial music) — fetch it once and the film has its beat-locked track. Clips and stills stream fine from Wikimedia Commons, but bundling them makes first frames instant and removes the last external dependency. One Python script does all of it:
 
 ```bash
-pip install yt-dlp        # soundtrack only — or: brew install yt-dlp   /   PowerShell: winget install yt-dlp.yt-dlp
-sudo apt install ffmpeg   # or: brew install ffmpeg   /   PowerShell: winget install Gyan.FFmpeg  (then reopen the terminal)
-npm run media             # = node tools/fetch-media.js → media/audio, media/clips, media/stills, media/manifest.json
-npm run check             # confirms every file in the manifest exists and is under GitHub's 100 MB limit
+pip install yt-dlp                      # soundtrack only
+winget install Gyan.FFmpeg              # Windows (open a new terminal afterwards)  ·  macOS: brew install ffmpeg  ·  Linux: sudo apt install ffmpeg
+python tools/fetch_media.py             # everything → media/audio, media/clips, media/stills, media/manifest.json
+python tools/fetch_media.py --verify    # confirms every file exists, matches the screenplay and is under GitHub's 100 MB limit
 git add media && git commit -m "Bundle film media"
 ```
 
-`npm run media:audio`, `media:clips`, `media:stills` fetch one kind at a time.
+`--audio`, `--clips`, `--stills` fetch one kind; `--clip apollo --clip webb` a subset; `--quality 720` caps clip height (default 1080); `--max 2560` caps still width (default 3840); `--force` refetches; `--check` shows which tools were found (it also finds ffmpeg from `pip install imageio-ffmpeg` and winget's install folder). Progress is saved after every item, so an interrupted run resumes. `npm run media` is an alias.
 
-The script downloads the track as 160 kbps AAC, pulls each clip straight from Wikimedia Commons (no yt-dlp needed for clips), cuts it to the exact window the film uses and re-encodes it as a lean ≤1080p H.264 MP4 (muted, fast-start — Safari-friendly), and saves every still at up to 3840 px. `film.js` reads `media/manifest.json` at boot: the soundtrack is a plain `<audio>` element (sample-accurate clock), clips are `<video>` elements, stills load from the repo. Anything not in the manifest streams from Commons, so partial fetches are fine (`--audio`, `--clips`, `--stills`, `--clip apollo`, `--max 2560`).
+What it does: downloads the track as 192 kbps AAC (fast-start, so `?t=90` seeks instantly over HTTP Range); for each clip picks the best Commons rendition ≤ 1080p (the original when it is 1080p or smaller), cuts it to the exact window the film uses and re-encodes it as H.264 High 4.1 / CRF 19 (muted, fast-start — hardware-decoded everywhere including Safari) with a poster frame; saves every still at up to 3840 px. `film.js` reads `media/manifest.json` at boot: the soundtrack is a plain `<audio>` element, clips are `<video>` elements, stills load from the repo. Anything not in the manifest streams from Commons.
+
+The older Node version, `tools/fetch-media.js`, still works (`npm run media:node`).
 
 Note on rights: the archival clips and stills are public domain / CC and safe to redistribute; the soundtrack is commercial music — bundle it only if you hold the rights, otherwise leave `media/audio/` out and the film plays its own ambient score.
 
 ### Tuning the beat grid
 
-Tempo and first-downbeat offset live in `TIMING` at the top of `js/film-script.js` and can be overridden without editing: `?bpm=96.7&offset=0.12`. Open `?debug=1`, enter with audio, and tap **T** on the beat (≥4 taps) or press **O** on a downbeat; arrows nudge (←/→ offset, ↑/↓ bpm), `[`/`]` seek, and the overlay prints the URL params to paste back into the script.
+The grid is a fixed 95 BPM (0.6316 s per beat). Tempo and first-downbeat offset live in `TIMING` at the top of `js/film-script.js` and can be overridden without editing: `?bpm=95&offset=0.0`. Open `?debug=1`, enter with audio, and tap **T** on the beat (≥4 taps) or press **O** on a downbeat; arrows nudge (←/→ offset, ↑/↓ bpm), `[`/`]` seek, and the overlay prints the URL params to paste back into the script.
 
 Other switches: `?nofilm=1` (or any `#section` link) skips straight to the monument; `?t=90` starts the film at 90 s; `Esc` skips at any time.
 

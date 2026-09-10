@@ -156,7 +156,7 @@ window.HUMANITY = (function () {
       lede: 'The story is accelerating.',
       text: 'Reusable rockets land themselves. mRNA vaccines were designed within days of a virus being sequenced. AlphaFold solved a fifty-year-old problem in biology and predicted the structure of nearly every known protein. Artificial intelligence writes, reasons and discovers alongside us. Perseverance is caching rock on Mars for return to Earth, and a helicopter has flown in another world\'s sky.',
       facts: ['In October 2024 a 71-metre rocket booster was caught out of the air by its launch tower.', 'AlphaFold\'s 200 million protein structures are free to every scientist on Earth.', 'Global renewable capacity is now growing faster than any energy source in history.'],
-      video: { id: 'hI9HQfCAw64', title: 'Starship Flight 5 — first booster catch', source: 'SpaceX' }
+      video: { id: 'hI9HQfCAw64', clip: 'starship', title: 'Starship — the largest rocket ever flown, seen from orbit', source: 'NOAA / CIRA · SpaceX' }
     }
   ];
 
@@ -218,6 +218,12 @@ window.HUMANITY = (function () {
           text: 'A 6.5-metre gold-coated mirror unfolded itself in deep space, 1.5 million km from Earth, cooled to –233 °C. Webb sees infrared light stretched by 13 billion years of cosmic expansion — the first galaxies, the atmospheres of alien worlds.',
           facts: ['344 single points of failure during deployment — all succeeded', 'Sunshield: the size of a tennis court', 'Mirror: 18 hexagonal beryllium segments'],
           video: { id: 'nmMRMIE3MGw', clip: 'webb', title: 'First images from Webb (official broadcast)', source: 'NASA' }
+        },
+        {
+          year: 2022, title: 'Artemis I', sub: 'Humanity turns back to the Moon',
+          text: 'Fifty years after Apollo 17, the Space Launch System — the most powerful rocket NASA has ever flown — sent an uncrewed Orion capsule around the Moon and back. Orion travelled farther from Earth than any spacecraft built for humans, 432,000 km out, and returned at 40,000 km/h. Artemis II carries a crew on the same path; Artemis III aims to land the first woman and the first person of colour near the lunar south pole.',
+          facts: ['SLS liftoff thrust: 39.1 MN — 15% more than Saturn V', 'Orion re-entry: 2,800 °C heat-shield temperature', '25.5 days, 2.25 million km flown'],
+          video: { clip: 'artemis', title: 'Artemis I launches to the Moon — NASA recap', source: 'NASA' }
         }
       ]
     },
@@ -315,6 +321,16 @@ window.HUMANITY = (function () {
           year: 2022, title: 'Generative AI', sub: 'Machines that speak, see, code and reason',
           text: 'Large language models trained on the written record of humanity can now converse, translate, write software, pass professional exams and assist in scientific discovery. Whatever comes next, a threshold has been crossed.',
           facts: ['ChatGPT reached 100 million users in 2 months', 'AI systems now design drugs, chips and materials', 'The field is moving faster than any previous technology']
+        },
+        {
+          year: 2019, title: 'Quantum Computers', sub: 'Computing with superposition itself',
+          text: 'Feynman asked in 1981 whether nature could be simulated on a machine that obeyed the same quantum rules. Forty years later, processors of superconducting qubits held at 15 millikelvin — colder than deep space — performed in minutes a sampling task that would take classical supercomputers millennia. Error-corrected logical qubits, first demonstrated in 2023–24, are the road from experiment to tool: chemistry, materials, cryptography.',
+          facts: ['Qubit temperature: 0.015 K', 'First below-threshold error correction: 2024', 'Simulating a 300-qubit state exactly needs more numbers than there are atoms in the universe']
+        },
+        {
+          year: 2024, title: 'Brain–Computer Interfaces', sub: 'Thought becomes a cursor',
+          text: 'Electrode arrays finer than a human hair read the firing of individual neurons and translate it in real time. People with paralysis now type, browse, play chess and speak again through decoded intent — at speeds approaching natural conversation. The same channel is starting to run the other way, restoring sight and touch.',
+          facts: ['Speech decoding: 60–80 words per minute from intent alone', 'First fully implanted wireless BCI in a human: 2024', 'Electrode threads: ~5 µm wide']
         }
       ]
     },

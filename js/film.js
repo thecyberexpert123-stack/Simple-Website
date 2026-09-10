@@ -73,13 +73,14 @@
   // Rendition width: physical pixels of the long screen edge × the maximum Ken Burns zoom (1.16), snapped to
   // Wikimedia's cached thumb sizes so the picture is never shown larger than its own pixels.
   const KB_MAX = 1.16;
-  const screenPx = Math.round(Math.max(window.innerWidth, window.innerHeight) * Math.min(window.devicePixelRatio || 1, 2) * KB_MAX);
-  const want = screenPx > 2560 ? 3840 : screenPx > 1920 ? 2560 : screenPx > 1280 ? 1920 : 1280;
+  const pickWidth = () => { const px = Math.round(Math.max(window.innerWidth, window.innerHeight, screen.width || 0) * Math.min(window.devicePixelRatio || 1, 3) * KB_MAX); return px > 2560 ? 3840 : px > 1920 ? 2560 : px > 1280 ? 1920 : 1280; };
+  let want = pickWidth();
+  addEventListener('resize', () => { const w = pickWidth(); if (w > want) { want = w; Object.values(S.IMAGES).forEach((d) => { if (!d.local) d.src = urlFor(d, want); }); } }, { passive: true });
   const LOWRES = 1500; // originals narrower than this are shown 'contained' on a soft backdrop instead of stretched
   const urlFor = S.urlFor;
   Object.values(S.IMAGES).forEach((d) => { d.src = urlFor(d, want); d.srcLo = urlFor(d, 1280); d.low = d.w < LOWRES; d.page = `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(d.file)}`; });
 
-  /* Local media (media/manifest.json, produced by tools/fetch-media.js). When present, stills, clips and the
+  /* Local media (media/manifest.json, produced by tools/fetch_media.py). When present, stills, clips and the
      soundtrack are served from the repo itself — no YouTube / Wikimedia at runtime. Missing entries fall back. */
   const LOCAL = { audio: null, clips: {}, stills: {} }; window.FILM_LOCAL = LOCAL; // app.js reads it for the modal player
   async function loadManifest() {
@@ -127,7 +128,8 @@
 
   /* -- local file -- */
   function createLocalAudio() {
-    const a = new Audio(); a.src = LOCAL.audio.file; a.preload = 'auto'; a.loop = true; a.crossOrigin = 'anonymous'; a.playsInline = true;
+    const a = new Audio(); a.src = LOCAL.audio.file; a.preload = 'auto'; a.loop = false; a.crossOrigin = 'anonymous'; a.playsInline = true;
+    a.addEventListener('ended', () => { music.playing = false; if (finished) { window.Ambient?.enable(); } else { a.currentTime = 0; a.play().catch(() => { /* noop */ }); } });
     a.addEventListener('playing', onPlaying);
     a.addEventListener('pause', () => { music.playing = false; });
     a.addEventListener('waiting', () => { music.playing = false; });
@@ -324,7 +326,7 @@
   function camera(im, shot, def) {
     const secs = Math.max(0.6, shot.beats * spb());
     const mv = CAM_MOVES[camI++ % CAM_MOVES.length];
-    const portrait = def && def.h && def.w && def.h > def.w;
+    const portrait = !!(def && def.h_px && def.w && def.h_px > def.w);
     const from = { ...mv.from }, to = { ...mv.to };
     if (portrait) { from.yPercent = (from.yPercent || 0) + 1.5; to.yPercent = (to.yPercent || 0) - 1.5; }
     if (shot.beats <= 1) { // stab: land hard from a punch-in and hold — reads as a hit on the beat
@@ -382,7 +384,7 @@
     gsap.fromTo(els, { scale: 1.06, xPercent: 0.6 * dir, yPercent: 0 }, { scale: 1.0, xPercent: 0, yPercent: 0, duration: secs + 1.2, ease: 'sine.out', overwrite: true });
   }
   /* which Commons transcode to stream: enough rows for the stage at this DPR, never more than the file has */
-  function clipHeight() { const dpr = Math.min(2, window.devicePixelRatio || 1); const h = Math.round(stage.clientHeight * dpr); const save = navigator.connection?.saveData; return save ? 480 : h > 900 ? 1080 : 480; }
+  function clipHeight() { const dpr = Math.min(3, window.devicePixelRatio || 1); const h = Math.round(Math.max(stage.clientHeight, stage.clientWidth * 9 / 16) * dpr); const c = navigator.connection; const slow = c && (c.saveData || /(^|[^0-9])2g/.test(c.effectiveType || '')); return slow ? 480 : h >= 700 ? 1080 : 480; }
   function makeSlot(shot) { const slot = el('div', 'slot warm'); slot.dataset.shot = shot.index; slot.appendChild(mediaFor(shot, slot)); slots.appendChild(slot); const v = slot.querySelector('video'); if (v) v.load(); /* buffer + decode the in-point now; play() happens on the cut so the first visible frame is the one we chose */ return slot; }
   function prewarm(shot) { if (prewarmed.has(shot.index)) return; prewarmed.set(shot.index, makeSlot(shot)); }
 
@@ -474,7 +476,7 @@
     curSlot = slot;
     if (prev) setTimeout(() => { prev.classList.add('gone'); setTimeout(() => prev.remove(), 600); }, gpu ? 1000 : 550);
     // caption + credit
-    capEl.textContent = shot.caption || ''; capEl.classList.toggle('on', !!shot.caption);
+    const capTxt = shot.caption || ''; if (capTxt !== capEl.textContent) { capEl.textContent = capTxt; capEl.classList.remove('on'); if (capTxt) { void capEl.offsetWidth; capEl.classList.add('on'); } }
     const key = keyOf(shot.media); const def = key && S.IMAGES[key];
     if (typeof shot.media === 'object' && shot.media.file) creditEl.textContent = `${shot.media.title} · ${shot.media.license}`;
     else creditEl.textContent = def && slot.dataset.kind === 'img' ? `${def.credit} · ${def.license}` : '';
@@ -524,8 +526,8 @@
     } else {
       requestAnimationFrame(() => requestAnimationFrame(() => { tc.classList.add('in'); h.classList.add('in'); }));
     }
-    tcOutBeat = ch.kind === 'finale' ? ch.start + ch.len * 0.5 : ch.kind === 'title' ? ch.start + 14 : ch.start + 4;
-    if (ch.kind === 'finale') { exploreBtn.hidden = false; setTimeout(() => exploreBtn.classList.add('show'), 4 * spb() * 1000); }
+    tcOutBeat = ch.kind === 'finale' ? ch.start + ch.len * 0.6 : ch.kind === 'title' ? ch.start + 14 : ch.start + 4;
+    if (ch.kind === 'finale') { exploreBtn.hidden = false; setTimeout(() => exploreBtn.classList.add('show'), 8 * spb() * 1000); }
   }
   function hideTitlecard() {
     const tc = titlecard; if (!tc) return; titlecard = null; tcOutBeat = Infinity;

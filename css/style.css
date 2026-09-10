@@ -327,7 +327,7 @@ main { position: relative; z-index: 3; }
 .modal { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 20px; opacity: 0; visibility: hidden; transition: opacity 0.5s, visibility 0s linear 0.5s; }
 .modal.open { opacity: 1; visibility: visible; transition: opacity 0.5s; }
 .modal-bg { position: absolute; inset: 0; background: rgba(3, 4, 8, 0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
-.modal-box { position: relative; width: min(960px, 100%); max-height: calc(100vh - 40px); overflow: auto; border-radius: 20px; transform: translateY(20px) scale(0.98); transition: transform 0.6s var(--ease); }
+.modal-box { position: relative; width: min(1100px, 100%); max-height: calc(100vh - 40px); overflow: auto; border-radius: 20px; transform: translateY(28px) scale(0.97); transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
 .modal.open .modal-box { transform: none; }
 .modal-close { position: absolute; top: 14px; right: 14px; z-index: 2; }
 .modal-media { aspect-ratio: 16 / 9; background: #000; border-radius: 20px 20px 0 0; overflow: hidden; }
